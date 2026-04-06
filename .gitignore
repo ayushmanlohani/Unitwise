@@ -1,0 +1,17 @@
+# 1. Security
+.env
+
+# 2. Virtual Environments
+venv/
+env/
+
+# 3. Python Cache
+__pycache__/
+*.pyc
+
+# 4. Database & Heavy Files
+backend/vector_store/
+
+# 5. Copyrighted Textbooks 
+# (We ignore the PDFs, but keep syllabus.yaml)
+backend/data/raw/

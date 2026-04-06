@@ -1,0 +1,65 @@
+branch: "CSE-AI"
+semester: 6
+
+subjects:
+  - name: "Computer Networks"
+    code: "NCS-601"
+    folder: "computer_networks"
+    books:
+      - file: "Richard_Stevens-TCP-IP_Illustrated-EN.pdf"
+        short_name: "Stevens"
+    units:
+      - number: 1
+        title: "Introduction to Computer Networks"
+        topics:
+          - "Goals and Applications of Networks"
+          - "OSI Reference Model"
+          - "TCP/IP Reference Model"
+        sources:
+          - book: "Stevens"
+            chapters: [1]
+            pages: "1-20"
+      - number: 2
+        title: "Data Link Layer"
+        topics:
+          - "Error Detection and Correction"
+          - "Sliding Window Protocols"
+          - "Ethernet"
+        sources:
+          - book: "Stevens"
+            chapters: [2, 4]
+            pages: "21-62"
+      - number: 3
+        title: "Network Layer"
+        topics:
+          - "IP Protocol"
+          - "IP Addressing and Subnetting"
+          - "ICMP"
+          - "Routing Algorithms"
+        sources:
+          - book: "Stevens"
+            chapters: [3, 5, 6, 7, 8, 9, 10]
+            pages: "63-148"
+      - number: 4
+        title: "Transport Layer"
+        topics:
+          - "UDP Protocol"
+          - "TCP Protocol"
+          - "TCP Congestion Control"
+          - "Flow Control"
+        sources:
+          - book: "Stevens"
+            chapters: [11, 17, 18, 19, 20, 21, 22, 23, 24]
+            pages: "149-372"
+      - number: 5
+        title: "Application Layer"
+        topics:
+          - "DNS"
+          - "FTP"
+          - "SMTP"
+          - "HTTP"
+          - "SNMP"
+        sources:
+          - book: "Stevens"
+            chapters: [14, 25, 26, 27, 28]
+            pages: "373-494"
