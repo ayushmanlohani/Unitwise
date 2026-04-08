@@ -31,7 +31,7 @@ def health_check():
 # POST /ask — core Q&A endpoint
 # ---------------------------------------------------------------------------
 @router.post("/ask", response_model=ChatResponse)
-def ask_question(request: ChatRequest):
+async def ask_question(request: ChatRequest):
     """
     Accept a student's question, retrieve relevant chunks from the
     vector store, and return an LLM-generated answer with sources.
@@ -46,8 +46,8 @@ def ask_question(request: ChatRequest):
             subject=request.subject,
         )
 
-        # 2. Generate an answer grounded in those chunks
-        result = generate_answer(
+        # 2. Generate an answer grounded in those chunks (awaited — non-blocking)
+        result = await generate_answer(
             query=request.query,
             retrieved_chunks=chunks,
         )

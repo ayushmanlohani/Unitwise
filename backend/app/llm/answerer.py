@@ -44,7 +44,7 @@ def load_system_prompt() -> str:
 # Main — generate an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
-def generate_answer(query: str, retrieved_chunks: list) -> dict:
+async def generate_answer(query: str, retrieved_chunks: list) -> dict:
     """
     Call the Groq LLM to answer a query using retrieved document chunks.
 
@@ -96,8 +96,8 @@ def generate_answer(query: str, retrieved_chunks: list) -> dict:
         ("human", query),
     ]
 
-    # ----- 4. Call the LLM -----
-    response = llm.invoke(messages)
+    # ----- 4. Call the LLM (async to avoid blocking the event loop) -----
+    response = await llm.ainvoke(messages)
 
     # ----- 5. Return structured output -----
     return {

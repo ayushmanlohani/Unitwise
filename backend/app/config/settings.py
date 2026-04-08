@@ -7,18 +7,21 @@ import os
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
-# 1. Load environment variables from .env at project root
+# 1. Absolute path anchoring
+#    settings.py lives at  <root>/backend/app/config/settings.py
+#    CURRENT_DIR  → .../backend/app/config
+#    PROJECT_ROOT → .../  (three levels up)
+#    All paths derived below are therefore absolute and CWD-independent.
 # ---------------------------------------------------------------------------
-# 1. Calculate BASE_DIR first
-BASE_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
-)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", ".."))
 
-# 2. Point directly to the .env file
-ENV_PATH = os.path.join(BASE_DIR, ".env")
+# ---------------------------------------------------------------------------
+# 2. Load environment variables from .env at project root
+# ---------------------------------------------------------------------------
+ENV_PATH = os.path.join(PROJECT_ROOT, ".env")
 load_dotenv(dotenv_path=ENV_PATH)
 
-# 3. Check for API Key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if GROQ_API_KEY is None:
     raise ValueError(
@@ -27,21 +30,12 @@ if GROQ_API_KEY is None:
     )
 
 # ---------------------------------------------------------------------------
-# 2. Base path — resolves to the project root regardless of working directory
-#    settings.py lives at  <root>/backend/app/config/settings.py
-#    so we go up three levels to reach the project root.
+# 3. Absolute directory / file paths (derived from PROJECT_ROOT)
 # ---------------------------------------------------------------------------
-BASE_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
-)
-
-# ---------------------------------------------------------------------------
-# 3. Directory / file paths (relative to project root)
-# ---------------------------------------------------------------------------
-DATA_DIR = os.path.join(BASE_DIR, "backend", "data", "raw")
-VECTOR_STORE_DIR = os.path.join(BASE_DIR, "backend", "vector_store")
-SYLLABUS_PATH = os.path.join(BASE_DIR, "backend", "data", "syllabus.yaml")
-PROMPTS_DIR = os.path.join(BASE_DIR, "backend", "prompts")
+DATA_DIR = os.path.join(PROJECT_ROOT, "backend", "data", "raw")
+VECTOR_STORE_DIR = os.path.join(PROJECT_ROOT, "backend", "vector_store")
+SYLLABUS_PATH = os.path.join(PROJECT_ROOT, "backend", "data", "syllabus.yaml")
+PROMPTS_DIR = os.path.join(PROJECT_ROOT, "backend", "prompts")
 
 # ---------------------------------------------------------------------------
 # 4. Chunking constants
