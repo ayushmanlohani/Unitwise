@@ -44,7 +44,7 @@ def load_system_prompt() -> str:
 # Main — generate an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
-async def generate_answer(query: str, retrieved_chunks: list) -> dict:
+async def generate_answer(query: str, retrieved_chunks: list, chat_history: list = None) -> dict:
     """
     Call the Groq LLM to answer a query using retrieved document chunks.
 
@@ -52,12 +52,15 @@ async def generate_answer(query: str, retrieved_chunks: list) -> dict:
         query:            The user's natural-language question.
         retrieved_chunks: A list of LangChain Document objects returned by
                           the vector-store search.
+        chat_history:     List of previous messages (dict with 'role' and 'content').
 
     Returns:
         A dict with two keys:
             - "answer"  : the generated response text (str)
             - "sources" : a deduplicated list of source citations (list[str])
     """
+    if chat_history is None:
+        chat_history = []
 
     # ----- 1. Initialise the LLM -----
     llm = ChatGroq(
@@ -86,10 +89,20 @@ async def generate_answer(query: str, retrieved_chunks: list) -> dict:
     # ----- 3. Build the prompt -----
     system_prompt = load_system_prompt()
 
+    # Format chat history
+    history_block = "No previous context."
+    if chat_history:
+        history_parts = []
+        for msg in chat_history:
+            role = "User" if msg.get("role") == "user" else "Assistant"
+            history_parts.append(f"{role}:\n{msg.get('content')}")
+        history_block = "\n\n".join(history_parts)
+
     messages = [
         (
             "system",
             f"{system_prompt}\n\n"
+            f"--- CHAT HISTORY ---\n{history_block}\n--- END CHAT HISTORY ---\n\n"
             f"Use the following context to answer the question.\n\n"
             f"--- CONTEXT ---\n{context_block}\n--- END CONTEXT ---",
         ),

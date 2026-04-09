@@ -5,6 +5,7 @@ These schemas enforce input validation on incoming requests and guarantee
 a consistent JSON shape on every response.
 """
 
+from typing import List, Dict
 from pydantic import BaseModel
 
 
@@ -19,9 +20,11 @@ class ChatRequest(BaseModel):
     Attributes:
         query:   The student's natural-language question.
         subject: The subject to search within (e.g. "computer_networks").
+        chat_history: Optional list of previous messages in the conversation.
     """
     query: str
     subject: str
+    chat_history: List[Dict[str, str]] = []
 
 
 # ---------------------------------------------------------------------------

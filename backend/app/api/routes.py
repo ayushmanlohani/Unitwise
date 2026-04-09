@@ -50,6 +50,7 @@ async def ask_question(request: ChatRequest):
         result = await generate_answer(
             query=request.query,
             retrieved_chunks=chunks,
+            chat_history=request.chat_history,
         )
 
         # 3. Map the dict returned by generate_answer → ChatResponse
