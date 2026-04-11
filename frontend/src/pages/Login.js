@@ -1,252 +1,162 @@
-/**
- * Login.js — Authentication page for the Unitwise app.
- *
- * Provides both Sign Up and Log In flows via Supabase Auth.
- * Uses Supabase v2 methods (signUp, signInWithPassword).
- */
-
 import { useState } from 'react';
 import { supabase } from '../config/supabaseClient';
 
-// ---------------------------------------------------------------------------
-// Styles — modern, dark-themed auth card (no Tailwind, pure inline CSS)
-// ---------------------------------------------------------------------------
-
 const styles = {
-  /* ---------- Full-page wrapper ---------- */
   page: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-    fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+    backgroundColor: '#f5f4ed', // Parchment
+    fontFamily: "system-ui, -apple-system, sans-serif",
     padding: '1rem',
   },
-
-  /* ---------- Card container ---------- */
   card: {
     width: '100%',
-    maxWidth: '420px',
-    background: 'rgba(255, 255, 255, 0.06)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255, 255, 255, 0.12)',
-    borderRadius: '20px',
-    padding: '2.5rem 2rem',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-    color: '#f0f0f0',
+    maxWidth: '400px',
+    backgroundColor: '#faf9f5', // Ivory
+    border: '1px solid #f0eee6', // Border Cream
+    borderRadius: '16px',
+    padding: '48px 40px',
+    boxShadow: 'rgba(0,0,0,0.05) 0px 4px 24px', // Whisper shadow
   },
-
-  /* ---------- Title / subtitle ---------- */
   title: {
-    margin: '0 0 0.25rem',
-    fontSize: '1.75rem',
-    fontWeight: 700,
+    fontFamily: "'Georgia', serif",
+    fontSize: '32px',
+    fontWeight: 500,
+    lineHeight: 1.10,
+    color: '#141413',
+    margin: '0 0 8px 0',
     textAlign: 'center',
-    letterSpacing: '-0.02em',
   },
   subtitle: {
-    margin: '0 0 2rem',
-    fontSize: '0.9rem',
+    fontSize: '16px',
+    lineHeight: 1.60,
+    color: '#5e5d59', // Olive Gray
     textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.55)',
+    margin: '0 0 32px 0',
   },
-
-  /* ---------- Form inputs ---------- */
   label: {
     display: 'block',
-    marginBottom: '0.4rem',
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '14px',
+    color: '#4d4c48',
+    marginBottom: '6px',
   },
   input: {
     width: '100%',
-    padding: '0.75rem 1rem',
-    marginBottom: '1.25rem',
-    fontSize: '0.95rem',
-    color: '#fff',
-    background: 'rgba(255, 255, 255, 0.08)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '10px',
+    padding: '12px',
+    marginBottom: '20px',
+    fontSize: '16px',
+    fontFamily: "system-ui, sans-serif",
+    color: '#141413',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e8e6dc', // Border Warm
+    borderRadius: '8px',
     outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
     boxSizing: 'border-box',
+    transition: 'border-color 0.2s',
   },
-
-  /* ---------- Buttons ---------- */
   btnPrimary: {
     width: '100%',
-    padding: '0.8rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#fff',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: '#141413', // Near Black for primary action here
+    color: '#f5f4ed',
+    padding: '12px 16px',
+    borderRadius: '8px',
     border: 'none',
-    borderRadius: '10px',
+    fontSize: '16px',
+    fontWeight: 500,
     cursor: 'pointer',
-    transition: 'opacity 0.2s, transform 0.15s',
-    marginBottom: '0.75rem',
+    marginTop: '8px',
+    boxShadow: '0px 0px 0px 1px #30302e',
   },
-  btnSecondary: {
+  linkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#3d3d3a', // Dark Warm
+    fontSize: '14px',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    marginTop: '24px',
     width: '100%',
-    padding: '0.8rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#c4b5fd',
-    background: 'transparent',
-    border: '1px solid rgba(196, 181, 253, 0.35)',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    transition: 'background 0.2s, transform 0.15s',
-  },
-
-  /* ---------- Feedback messages ---------- */
-  error: {
-    marginBottom: '1rem',
-    padding: '0.65rem 1rem',
-    fontSize: '0.85rem',
-    color: '#fca5a5',
-    background: 'rgba(239, 68, 68, 0.12)',
-    border: '1px solid rgba(239, 68, 68, 0.25)',
-    borderRadius: '8px',
     textAlign: 'center',
   },
-  success: {
-    marginBottom: '1rem',
-    padding: '0.65rem 1rem',
-    fontSize: '0.85rem',
-    color: '#86efac',
-    background: 'rgba(34, 197, 94, 0.12)',
-    border: '1px solid rgba(34, 197, 94, 0.25)',
+  message: {
+    padding: '12px',
     borderRadius: '8px',
+    fontSize: '14px',
+    marginBottom: '20px',
     textAlign: 'center',
-  },
+  }
 };
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export default function Login() {
-  // ---- State ----
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  // ---- Sign Up ----
-  async function handleSignUp(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (signUpError) {
-      setError(signUpError.message);
+    if (isLoginMode) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) setError(loginError.message);
+      else setMessage('Entering your study space...');
     } else {
-      setMessage('Account created! You can now log in.');
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) setError(signUpError.message);
+      else setMessage('Library card created! You can now sign in.');
     }
-
     setLoading(false);
   }
 
-  // ---- Log In (Supabase v2: signInWithPassword) ----
-  async function handleLogin(e) {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setMessage('');
-
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (loginError) {
-      setError(loginError.message);
-    } else {
-      setMessage('Logged in successfully!');
-    }
-
-    setLoading(false);
-  }
-
-  // ---- Render ----
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        {/* Header */}
-        <h1 style={styles.title}>Welcome to Unitwise</h1>
-        <p style={styles.subtitle}>Sign in to access your academic assistant</p>
+        <h1 style={styles.title}>{isLoginMode ? 'Welcome Back' : 'Join Unitwise'}</h1>
+        <p style={styles.subtitle}>
+          {isLoginMode ? 'Return to your academic materials.' : 'Create an account to begin studying.'}
+        </p>
 
-        {/* Feedback banners */}
-        {error && <div style={styles.error}>{error}</div>}
-        {message && <div style={styles.success}>{message}</div>}
+        {error && <div style={{ ...styles.message, backgroundColor: '#fbe9e9', color: '#b53333' }}>{error}</div>}
+        {message && <div style={{ ...styles.message, backgroundColor: '#f0eee6', color: '#4d4c48' }}>{message}</div>}
 
-        {/* Auth form */}
-        <form onSubmit={handleLogin}>
-          <label htmlFor="email" style={styles.label}>
-            Email
-          </label>
+        <form onSubmit={handleSubmit}>
+          <label style={styles.label}>Email Address</label>
           <input
-            id="email"
             type="email"
-            placeholder="you@example.com"
+            style={styles.input}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onFocus={(e) => e.target.style.borderColor = '#3898ec'}
+            onBlur={(e) => e.target.style.borderColor = '#e8e6dc'}
             required
-            style={styles.input}
           />
 
-          <label htmlFor="password" style={styles.label}>
-            Password
-          </label>
+          <label style={styles.label}>Password</label>
           <input
-            id="password"
             type="password"
-            placeholder="••••••••"
+            style={styles.input}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onFocus={(e) => e.target.style.borderColor = '#3898ec'}
+            onBlur={(e) => e.target.style.borderColor = '#e8e6dc'}
             required
-            minLength={6}
-            style={styles.input}
           />
 
-          {/* Primary action — Log In */}
-          <button
-            id="login-btn"
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.btnPrimary,
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            {loading ? 'Please wait…' : 'Log In'}
-          </button>
-
-          {/* Secondary action — Sign Up */}
-          <button
-            id="signup-btn"
-            type="button"
-            disabled={loading}
-            onClick={handleSignUp}
-            style={{
-              ...styles.btnSecondary,
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            Create Account
+          <button type="submit" style={{ ...styles.btnPrimary, opacity: loading ? 0.7 : 1 }} disabled={loading}>
+            {loading ? 'Please wait...' : (isLoginMode ? 'Sign In' : 'Create Account')}
           </button>
         </form>
+
+        <button type="button" style={styles.linkBtn} onClick={() => { setIsLoginMode(!isLoginMode); setError(''); setMessage(''); }}>
+          {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
+        </button>
       </div>
     </div>
   );
