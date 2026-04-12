@@ -6,6 +6,7 @@ Endpoints:
     POST /ask     →  Accept a question + subject, return an LLM-grounded answer.
 """
 
+import traceback
 from fastapi import APIRouter, HTTPException
 
 from app.api.schemas import ChatRequest, ChatResponse
@@ -40,24 +41,25 @@ async def ask_question(request: ChatRequest):
         HTTPException 500 if any step in the pipeline fails.
     """
     try:
-        # 1. Retrieve the most relevant document chunks
-        chunks = search_documents(
-            query=request.query,
-            subject=request.subject,
-        )
-
-        # 2. Generate an answer grounded in those chunks (awaited — non-blocking)
+        # 1. Generate an answer grounded in ChromaDB chunks 
+        # (The retrieval is safely handled inside generate_answer)
         result = await generate_answer(
             query=request.query,
-            retrieved_chunks=chunks,
+            subject=request.subject,
             chat_history=request.chat_history,
         )
 
-        # 3. Map the dict returned by generate_answer → ChatResponse
+        # 2. Map the dict returned by generate_answer -> ChatResponse
         return ChatResponse(
             answer=result["answer"],
             sources=result["sources"],
         )
 
     except Exception as e:
+        # Print the FULL traceback to the uvicorn terminal for debugging
+        print("\n" + "=" * 60)
+        print("ERROR in /ask endpoint:")
+        print("=" * 60)
+        traceback.print_exc()
+        print("=" * 60 + "\n")
         raise HTTPException(status_code=500, detail=str(e))

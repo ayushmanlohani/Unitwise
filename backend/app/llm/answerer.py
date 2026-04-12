@@ -82,8 +82,11 @@ async def generate_answer(query: str, subject: str, chat_history: list = None) -
 
     # ----- 3. Initialise the LLM -----
     llm = ChatGroq(
-        model=settings.LLM_MODEL,
-        temperature=settings.LLM_TEMPERATURE,
+        api_key=settings.GROQ_API_KEY,
+        temperature=0.2, 
+        model_name="llama-3.1-8b-instant",
+        max_retries=3,
+        request_timeout=60,
     )
 
     # ----- 4. Build the prompt -----
