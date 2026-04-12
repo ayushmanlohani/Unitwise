@@ -9,12 +9,15 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "framer-motion": "^12.38.0",
+    "katex": "^0.16.45",
     "lucide-react": "^1.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.0",
     "react-scripts": "5.0.1",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

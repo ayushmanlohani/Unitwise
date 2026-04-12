@@ -2,14 +2,14 @@
 answerer.py — Generate answers using the Groq LLM based on retrieved context.
 
 Loads a system prompt from disk, formats the retrieved chunks into a
-numbered context block, and calls ChatGroq to produce a grounded answer.
+context block, and calls ChatGroq to produce a grounded answer.
 """
 
 import os
 
 from langchain_groq import ChatGroq
-
 from app.config import settings
+from app.search.searcher import search_documents
 
 
 # ---------------------------------------------------------------------------
@@ -44,14 +44,13 @@ def load_system_prompt() -> str:
 # Main — generate an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
-async def generate_answer(query: str, retrieved_chunks: list, chat_history: list = None) -> dict:
+async def generate_answer(query: str, subject: str, chat_history: list = None) -> dict:
     """
-    Call the Groq LLM to answer a query using retrieved document chunks.
+    Call the Groq LLM to answer a query using documents retrieved from ChromaDB.
 
     Args:
         query:            The user's natural-language question.
-        retrieved_chunks: A list of LangChain Document objects returned by
-                          the vector-store search.
+        subject:          The subject/folder name used to filter the search.
         chat_history:     List of previous messages (dict with 'role' and 'content').
 
     Returns:
@@ -62,31 +61,32 @@ async def generate_answer(query: str, retrieved_chunks: list, chat_history: list
     if chat_history is None:
         chat_history = []
 
-    # ----- 1. Initialise the LLM -----
+    # ----- 1. Retrieve documents from ChromaDB -----
+    retrieved_docs = search_documents(query=query, subject=subject)
+
+    # ----- 2. Process documents for context and sources -----
+    context_chunks = ""
+    sources_set = set()
+
+    for doc in retrieved_docs:
+        # A: Concatenate page content into a single string
+        context_chunks += doc.page_content + "\n\n"
+        
+        # B: Extract and format metadata for citations
+        book = doc.metadata.get("book", "Unknown")
+        page = doc.metadata.get("page_number", "?")
+        sources_set.add(f"{book} - Page {page}")
+
+    # Convert deduplicated set back to a list
+    sources = list(sources_set)
+
+    # ----- 3. Initialise the LLM -----
     llm = ChatGroq(
         model=settings.LLM_MODEL,
         temperature=settings.LLM_TEMPERATURE,
     )
 
-    # ----- 2. Format context from retrieved chunks -----
-    context_parts = []
-    sources = set()
-
-    for i, chunk in enumerate(retrieved_chunks, start=1):
-        text = chunk.page_content
-        meta = chunk.metadata
-
-        book = meta.get("book", "Unknown")
-        page = meta.get("page_number", "?")
-
-        context_parts.append(
-            f"[{i}] (Source: {book}, Page {page})\n{text}"
-        )
-        sources.add(f"{book}, Page {page}")
-
-    context_block = "\n\n".join(context_parts)
-
-    # ----- 3. Build the prompt -----
+    # ----- 4. Build the prompt -----
     system_prompt = load_system_prompt()
 
     # Format chat history
@@ -104,16 +104,16 @@ async def generate_answer(query: str, retrieved_chunks: list, chat_history: list
             f"{system_prompt}\n\n"
             f"--- CHAT HISTORY ---\n{history_block}\n--- END CHAT HISTORY ---\n\n"
             f"Use the following context to answer the question.\n\n"
-            f"--- CONTEXT ---\n{context_block}\n--- END CONTEXT ---",
+            f"--- CONTEXT ---\n{context_chunks}\n--- END CONTEXT ---",
         ),
         ("human", query),
     ]
 
-    # ----- 4. Call the LLM (async to avoid blocking the event loop) -----
+    # ----- 5. Call the LLM (async to avoid blocking the event loop) -----
     response = await llm.ainvoke(messages)
 
-    # ----- 5. Return structured output -----
+    # ----- 6. Return structured output -----
     return {
         "answer": response.content,
-        "sources": sorted(sources),
+        "sources": sources,
     }

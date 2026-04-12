@@ -1,65 +1,683 @@
-branch: "CSE-AI"
-semester: 6
-
 subjects:
-  - name: "Computer Networks"
+
+  # ============================================================
+  # SUBJECT 1: COMPUTER NETWORK
+  # ============================================================
+  - name: "Computer Network"
     code: "NCS-601"
-    folder: "computer_networks"
+    folder: "CN"
     books:
-      - file: "Richard_Stevens-TCP-IP_Illustrated-EN.pdf"
-        short_name: "Stevens"
+      - file: "Tanenbaum_ComputerNetworks.pdf"
+        short_name: "Tanenbaum"
+      - file: "Forouzan_DataCommunicationNetworking.pdf"
+        short_name: "Forouzan"
     units:
       - number: 1
-        title: "Introduction to Computer Networks"
+        title: "Introduction Concepts"
         topics:
-          - "Goals and Applications of Networks"
-          - "OSI Reference Model"
-          - "TCP/IP Reference Model"
+          - "Goals and applications of networks"
+          - "Network structure and architecture"
+          - "OSI reference model and services"
+          - "Network Topology Design: Delay analysis"
+          - "Backbone design and local access network design"
+          - "Physical layer transmission media"
+          - "Switching methods"
+          - "ISDN and terminal handling"
         sources:
-          - book: "Stevens"
-            chapters: [1]
-            pages: "1-20"
+          - book: "Tanenbaum"
+            chapters: [1, 2]
+            pages: "1-186"
+          - book: "Forouzan"
+            chapters: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            pages: "3-264"
+
       - number: 2
-        title: "Data Link Layer"
+        title: "Medium Access Sub Layer"
         topics:
-          - "Error Detection and Correction"
-          - "Sliding Window Protocols"
-          - "Ethernet"
+          - "Medium access sub layer - channel allocations"
+          - "LAN protocols - ALOHA protocols"
+          - "Overview of IEEE standards"
+          - "FDDI"
+          - "Data Link Layer - Elementary data link protocols"
+          - "Sliding window protocols"
+          - "Error handling"
         sources:
-          - book: "Stevens"
-            chapters: [2, 4]
-            pages: "21-62"
+          - book: "Tanenbaum"
+            chapters: [3, 4]
+            pages: "193-353"
+          - book: "Forouzan"
+            chapters: [10, 11, 12]
+            pages: "267-393"
+
       - number: 3
         title: "Network Layer"
         topics:
-          - "IP Protocol"
-          - "IP Addressing and Subnetting"
-          - "ICMP"
-          - "Routing Algorithms"
+          - "Point to point networks"
+          - "Routing algorithms"
+          - "Congestion control"
+          - "Internet Working - TCP/IP"
+          - "IP packet structure"
+          - "IP address"
+          - "IPv6"
         sources:
-          - book: "Stevens"
-            chapters: [3, 5, 6, 7, 8, 9, 10]
-            pages: "63-148"
+          - book: "Tanenbaum"
+            chapters: [5]
+            pages: "355-488"
+          - book: "Forouzan"
+            chapters: [19, 20, 21, 22, 24]
+            pages: "547-793"
+
       - number: 4
         title: "Transport Layer"
         topics:
-          - "UDP Protocol"
-          - "TCP Protocol"
-          - "TCP Congestion Control"
-          - "Flow Control"
+          - "Transport layer design issues"
+          - "Connection management"
+          - "Session layer design issues"
+          - "Remote procedure call"
+          - "Presentation layer design issues"
+          - "Data compression techniques"
+          - "Cryptography"
+          - "TCP window management"
         sources:
-          - book: "Stevens"
-            chapters: [11, 17, 18, 19, 20, 21, 22, 23, 24]
-            pages: "149-372"
+          - book: "Tanenbaum"
+            chapters: [6]
+            pages: "495-605"
+          - book: "Forouzan"
+            chapters: [23]
+            pages: "703-759"
+
       - number: 5
         title: "Application Layer"
         topics:
-          - "DNS"
-          - "FTP"
-          - "SMTP"
-          - "HTTP"
-          - "SNMP"
+          - "File transfer, access and management"
+          - "Electronic mail"
+          - "Virtual terminals"
+          - "Other application layer protocols"
+          - "Example networks - Internet and public networks"
         sources:
-          - book: "Stevens"
-            chapters: [14, 25, 26, 27, 28]
-            pages: "373-494"
+          - book: "Tanenbaum"
+            chapters: [7]
+            pages: "611-757"
+          - book: "Forouzan"
+            chapters: [25, 26, 27]
+            pages: "797-870"
+
+  # ============================================================
+  # SUBJECT 2: DIGITAL IMAGE PROCESSING
+  # ============================================================
+  - name: "Digital Image Processing"
+    code: "NCS-602"
+    folder: "DIP"
+    books:
+      - file: "Gonzalez_Woods_DigitalImageProcessing.pdf"
+        short_name: "Gonzalez"
+      - file: "Jayaraman_DigitalImageProcessing.pdf"
+        short_name: "Jayaraman"
+    units:
+      - number: 1
+        title: "Introduction"
+        topics:
+          - "Fundamental steps in digital image processing"
+          - "Components of an image processing system"
+          - "Sampling and quantization"
+          - "Representing digital images (data structure)"
+          - "Basic relationships between pixels"
+          - "Neighbors and connectivity of pixels in image"
+          - "Applications of image processing: medical imaging, robot vision, character recognition and remote sensing"
+        sources:
+          - book: "Gonzalez"
+            chapters: [1, 2]
+            pages: "17-117"
+          - book: "Jayaraman"
+            chapters: [1]
+            pages: "1-46"
+
+      - number: 2
+        title: "Image Enhancement in the Spatial Domain"
+        topics:
+          - "Basic gray level transformations"
+          - "Histogram processing"
+          - "Enhancement using arithmetic/logic operations"
+          - "Basics of spatial filtering"
+          - "Smoothing spatial filters"
+          - "Sharpening spatial filters"
+          - "Combining spatial enhancement methods"
+        sources:
+          - book: "Gonzalez"
+            chapters: [3]
+            pages: "119-201"
+          - book: "Jayaraman"
+            chapters: [5]
+            pages: "243-323"
+
+      - number: 3
+        title: "Image Enhancements in Frequency Domain"
+        topics:
+          - "Introduction to frequency domain"
+          - "Fourier transform"
+          - "Discrete Fourier Transform (DFT)"
+          - "Properties of DFT"
+          - "Discrete cosine transform"
+          - "Image filtering in frequency domain"
+        sources:
+          - book: "Gonzalez"
+            chapters: [4]
+            pages: "203-315"
+          - book: "Jayaraman"
+            chapters: [4]
+            pages: "152-242"
+
+      - number: 4
+        title: "Image Segmentation"
+        topics:
+          - "Introduction to image segmentation"
+          - "Detection of isolated points"
+          - "Line detection"
+          - "Edge detection and edge linking"
+          - "Region based segmentation - region growing"
+          - "Split and merge technique"
+          - "Local processing and regional processing"
+          - "Hough transform"
+          - "Segmentation using threshold"
+        sources:
+          - book: "Gonzalez"
+            chapters: [10]
+            pages: "699-809"
+          - book: "Jayaraman"
+            chapters: [7]
+            pages: "368-407"
+
+      - number: 5
+        title: "Image Compression"
+        topics:
+          - "Introduction to image compression"
+          - "Coding redundancy"
+          - "Inter-pixel redundancy"
+          - "Image compression model"
+          - "Lossy and lossless compression"
+          - "Huffman coding"
+          - "Arithmetic coding"
+          - "LZW coding"
+          - "Transform coding"
+          - "Sub-image size selection"
+          - "Blocking and DCT implementation using FFT"
+          - "Run length coding"
+        sources:
+          - book: "Gonzalez"
+            chapters: [8]
+            pages: "539-633"
+          - book: "Jayaraman"
+            chapters: [9]
+            pages: "444-541"
+
+  # ============================================================
+  # SUBJECT 3: ESSENTIALS OF MACHINE LEARNING
+  # ============================================================
+  - name: "Essentials of Machine Learning"
+    code: "NAI-601"
+    folder: "EML"
+    books:
+      - file: "Kroese_DataScienceMachineLearning.pdf"
+        short_name: "Kroese"
+      - file: "Alpaydin_IntroductionMachineLearning.pdf"
+        short_name: "Alpaydin"
+      - file: "Geron_HandsOnMachineLearning.pdf"
+        short_name: "Geron"
+    units:
+      - number: 1
+        title: "Introduction"
+        topics:
+          - "Artificial Intelligence overview"
+          - "Machine Learning and Deep Learning"
+          - "Types of Machine Learning Systems"
+          - "Main Challenges of Machine Learning"
+          - "Statistical Learning: Introduction"
+          - "Supervised and Unsupervised Learning"
+          - "Training and Test Loss"
+          - "Tradeoffs in Statistical Learning"
+          - "Estimating Risk Statistics"
+          - "Sampling distribution of an estimator"
+          - "Empirical Risk Minimization"
+        sources:
+          - book: "Kroese"
+            chapters: [1, 2]
+            pages: "1-59"
+          - book: "Alpaydin"
+            chapters: [1, 2]
+            pages: "1-44"
+          - book: "Geron"
+            chapters: [1, 2]
+            pages: "1-84"
+
+      - number: 2
+        title: "Supervised Learning (Regression/Classification)"
+        topics:
+          - "Distance based methods"
+          - "Nearest Neighbours"
+          - "Decision Trees"
+          - "Naive Bayes"
+          - "Linear Models: Linear Regression"
+          - "Logistic Regression"
+          - "Generalized Linear Models"
+          - "Support Vector Machines"
+          - "Binary Classification: Multiclass/Structured outputs"
+          - "MNIST"
+          - "Ranking"
+        sources:
+          - book: "Kroese"
+            chapters: [5, 6, 7]
+            pages: "167-279"
+          - book: "Alpaydin"
+            chapters: [3, 4, 5, 8, 13]
+            pages: "47-339"
+          - book: "Geron"
+            chapters: [3, 4, 5]
+            pages: "85-174"
+
+      - number: 3
+        title: "Ensemble Learning and Random Forests"
+        topics:
+          - "Introduction to Ensemble Learning"
+          - "Voting Classifiers"
+          - "Bagging and Pasting"
+          - "Random Forests"
+          - "Boosting"
+          - "Stacking"
+          - "Support Vector Machine: Linear SVM Classification"
+          - "Nonlinear SVM Classification"
+          - "SVM Regression"
+          - "Naive Bayes Classifiers"
+        sources:
+          - book: "Kroese"
+            chapters: [7, 8]
+            pages: "251-321"
+          - book: "Alpaydin"
+            chapters: [13, 17]
+            pages: "309-443"
+          - book: "Geron"
+            chapters: [6, 7]
+            pages: "175-211"
+
+      - number: 4
+        title: "Unsupervised Learning Techniques"
+        topics:
+          - "Clustering and K-Means"
+          - "Limits of K-Means"
+          - "Using Clustering for Image Segmentation"
+          - "Using Clustering for Preprocessing"
+          - "Using Clustering for Semi-Supervised Learning"
+          - "DBSCAN"
+          - "Gaussian Mixtures"
+          - "Dimensionality Reduction: Curse of Dimensionality"
+          - "Main Approaches for Dimensionality Reduction"
+          - "PCA"
+          - "Using Scikit-Learn"
+          - "Randomized PCA"
+          - "Kernel PCA"
+        sources:
+          - book: "Kroese"
+            chapters: [4]
+            pages: "121-160"
+          - book: "Alpaydin"
+            chapters: [6, 7]
+            pages: "109-161"
+          - book: "Geron"
+            chapters: [8, 9]
+            pages: "213-275"
+
+      - number: 5
+        title: "Neural Networks and Deep Learning"
+        topics:
+          - "Introduction to Artificial Neural Networks with Keras"
+          - "Implementing MLPs with Keras"
+          - "Installing TensorFlow"
+          - "Loading and Preprocessing Data with TensorFlow"
+        sources:
+          - book: "Kroese"
+            chapters: [9]
+            pages: "323-350"
+          - book: "Alpaydin"
+            chapters: [11]
+            pages: "233-275"
+          - book: "Geron"
+            chapters: [10, 13]
+            pages: "279-442"
+
+  # ============================================================
+  # SUBJECT 4: SOFT COMPUTING TECHNIQUES
+  # ============================================================
+  - name: "Soft Computing Techniques"
+    code: "NAI-602"
+    folder: "SCT"
+    books:
+      - file: "Mitchell_IntroductionGeneticAlgorithms.pdf"
+        short_name: "Mitchell"
+      - file: "Sivanandam_Deepa_PrinciplesSoftComputing.pdf"
+        short_name: "Sivanandam"
+    units:
+      - number: 1
+        title: "Neural Network-I (Introduction & Architecture)"
+        topics:
+          - "Neuron, nerve structure and synapse"
+          - "Artificial neuron and its model"
+          - "Activation functions"
+          - "Neural network architecture: single layer and multilayer feed forward networks"
+          - "Recurrent networks"
+          - "Various learning techniques"
+          - "Perception and convergence rule"
+          - "Auto-associative and hetro-associative memory"
+        sources:
+          - book: "Sivanandam"
+            chapters: [2, 3, 4]
+            pages: "11-146"
+
+      - number: 2
+        title: "Neural Network-II (Back Propagation Networks)"
+        topics:
+          - "Architecture: perceptron model and solution"
+          - "Single layer artificial neural network"
+          - "Multilayer perception model"
+          - "Back propagation learning methods"
+          - "Effect of learning rule co-efficient"
+          - "Back propagation algorithm"
+          - "Factors affecting back propagation training"
+          - "Applications of back propagation"
+        sources:
+          - book: "Sivanandam"
+            chapters: [3]
+            pages: "49-96"
+
+      - number: 3
+        title: "Fuzzy Logic-I (Introduction)"
+        topics:
+          - "Basic concepts of fuzzy logic"
+          - "Fuzzy sets and crisp sets"
+          - "Fuzzy set theory and operations"
+          - "Properties of fuzzy sets"
+          - "Fuzzy and crisp relations"
+          - "Fuzzy to crisp conversion"
+        sources:
+          - book: "Sivanandam"
+            chapters: [7, 8, 9, 10]
+            pages: "251-327"
+
+      - number: 4
+        title: "Fuzzy Logic-II (Fuzzy Membership, Rules)"
+        topics:
+          - "Membership functions"
+          - "Interference in fuzzy logic"
+          - "Fuzzy if-then rules"
+          - "Fuzzy implications and fuzzy algorithms"
+          - "Fuzzification and defuzzification"
+          - "Fuzzy controller"
+          - "Industrial applications"
+        sources:
+          - book: "Sivanandam"
+            chapters: [9, 10, 12, 14]
+            pages: "295-383"
+
+      - number: 5
+        title: "Genetic Algorithm"
+        topics:
+          - "Basic concepts and working principle"
+          - "Procedures and flowchart of genetic algorithm"
+          - "Genetic representations"
+          - "Initialization and selection"
+          - "Genetic operators"
+          - "Mutation"
+          - "Generational cycle"
+          - "Applications of genetic algorithms"
+        sources:
+          - book: "Mitchell"
+            chapters: [1, 2, 4, 5]
+            pages: "1-133"
+          - book: "Sivanandam"
+            chapters: [15]
+            pages: "385-464"
+
+  # ============================================================
+  # SUBJECT 5: DATA MINING AND WAREHOUSING
+  # ============================================================
+  - name: "Data Mining and Warehousing"
+    code: "NAI-603"
+    folder: "DMW"
+    books:
+      - file: "Aggarwal_DataMiningTextbook.pdf"
+        short_name: "Aggarwal"
+      - file: "Han_Kamber_DataMining.pdf"
+        short_name: "Han"
+    units:
+      - number: 1
+        title: "Introduction"
+        topics:
+          - "Overview and motivation for data mining"
+          - "Data mining definition and functionalities"
+          - "Data processing and forms of data preprocessing"
+          - "Data cleaning: missing values, noisy data, binning, clustering, regression"
+          - "Computer and human inspection"
+          - "Inconsistent data"
+          - "Data integration and transformation"
+          - "Data Reduction: Data cube aggregation"
+          - "Dimensionality reduction"
+          - "Data compression and numerosity reduction"
+          - "Clustering, discretization and concept hierarchy generation"
+        sources:
+          - book: "Aggarwal"
+            chapters: [1, 2]
+            pages: "1-61"
+          - book: "Han"
+            chapters: [1, 2, 3]
+            pages: "1-123"
+
+      - number: 2
+        title: "Concept Description"
+        topics:
+          - "Definition and data generalization"
+          - "Analytical characterization"
+          - "Analysis of attribute relevance"
+          - "Mining class comparisons"
+          - "Statistical measures in large databases"
+          - "Measuring central tendency and dispersion"
+          - "Graph displays of basic statistical class description"
+          - "Mining association rules in large databases"
+          - "Association rule mining"
+          - "Mining single dimensional Boolean association rules from transactional databases"
+          - "Apriori algorithm"
+          - "Mining multilevel association rules from transaction databases"
+          - "Mining multi-dimensional association rules from relational databases"
+        sources:
+          - book: "Aggarwal"
+            chapters: [4, 5]
+            pages: "93-152"
+          - book: "Han"
+            chapters: [6, 7]
+            pages: "243-323"
+
+      - number: 3
+        title: "Classification and Predictions"
+        topics:
+          - "Classification and prediction"
+          - "Issues regarding classification and prediction"
+          - "Decision tree"
+          - "Bayesian classification"
+          - "Classification by back propagation"
+          - "Multilayer feed-forward neural network"
+          - "Back propagation algorithm"
+          - "Classification methods k nearest neighbor classifiers"
+          - "Genetic algorithm"
+        sources:
+          - book: "Aggarwal"
+            chapters: [10, 11]
+            pages: "285-386"
+          - book: "Han"
+            chapters: [8, 9]
+            pages: "327-439"
+
+      - number: 4
+        title: "Cluster Analysis"
+        topics:
+          - "Data types in cluster analysis"
+          - "Categories of clustering methods"
+          - "Partitioning methods"
+          - "Hierarchical clustering: CURE and Chameleon"
+          - "Density based methods: DBSCAN, OPTICS"
+          - "Grid based methods: STING, CLIQUE"
+          - "Model based method: Statistical approach"
+          - "Neural network approach"
+          - "Outlier analysis"
+        sources:
+          - book: "Aggarwal"
+            chapters: [6, 7]
+            pages: "153-236"
+          - book: "Han"
+            chapters: [10, 11]
+            pages: "443-540"
+
+      - number: 5
+        title: "Data Warehousing"
+        topics:
+          - "Overview and definition of data warehousing"
+          - "Delivery process"
+          - "Difference between database system and data warehouse"
+          - "Multi-dimensional data model"
+          - "Data cubes, stars, snowflakes, fact constellations"
+          - "Concept hierarchy"
+          - "Process architecture"
+          - "3 tier architecture"
+          - "Data marting"
+        sources:
+          - book: "Han"
+            chapters: [4, 5]
+            pages: "125-240"
+
+  # ============================================================
+  # SUBJECT 6: QUANTUM COMPUTING
+  # ============================================================
+  - name: "Quantum Computing"
+    code: "NAS-601"
+    folder: "QC"
+    books:
+      - file: "Kaye_Laflamme_Mosca_IntroductionQuantumComputing.pdf"
+        short_name: "Kaye"
+      - file: "Nielsen_Chuang_QuantumComputationInformation.pdf"
+        short_name: "Nielsen"
+      - file: "Rieffel_Polak_QuantumComputingGentleIntroduction.pdf"
+        short_name: "Rieffel"
+    units:
+      - number: 1
+        title: "Basic Concepts of Quantum Mechanics & Operators"
+        topics:
+          - "Postulates of Quantum Mechanics"
+          - "Wave function"
+          - "Schroedinger time dependent and time independent wave equation"
+          - "Heisenberg Uncertainty Principle and its physical significances"
+          - "Concept of Operators"
+          - "Unitary operators"
+          - "Identity operators"
+          - "Adjoint operators"
+          - "Hermitian operators"
+          - "Projection operators and their interpretations"
+        sources:
+          - book: "Kaye"
+            chapters: [2, 3]
+            pages: "21-59"
+          - book: "Nielsen"
+            chapters: [2]
+            pages: "60-119"
+          - book: "Rieffel"
+            chapters: [2, 4]
+            pages: "9-66"
+
+      - number: 2
+        title: "Boolean Algebra & Quantum Information Processing"
+        topics:
+          - "Boolean algebra"
+          - "Algebra in Linear Vector Space"
+          - "Hilbert Spaces and Logic gates"
+          - "Quantum Bits"
+          - "Basic Probability Rules and their Applications"
+          - "Quantum Information Processing"
+          - "Information Theory"
+          - "Information Entropy"
+          - "Fundamentals of Quantum Registers and its Applications"
+        sources:
+          - book: "Kaye"
+            chapters: [1, 4, 5]
+            pages: "1-82"
+          - book: "Nielsen"
+            chapters: [1, 2]
+            pages: "1-119"
+          - book: "Rieffel"
+            chapters: [2, 3]
+            pages: "9-44"
+
+      - number: 3
+        title: "Basic Concepts of Quantum Computing"
+        topics:
+          - "Quantum States and Quantum Superposition"
+          - "Entanglement and Decoherence"
+          - "Applications of Decoherence and Addressing Decoherence"
+          - "Quantum Key Distribution"
+          - "Klein-Gordon Equation"
+          - "Quantum Electrodynamics and Quantum Chromodynamics"
+          - "Dirac Equation"
+          - "Quantum Gates"
+          - "Phase Shift Gates and Controlled Gates"
+          - "Quantum Algorithm"
+          - "Quantum Computer design and roadmap"
+        sources:
+          - book: "Kaye"
+            chapters: [4, 5, 6, 7]
+            pages: "61-151"
+          - book: "Nielsen"
+            chapters: [4, 5, 6]
+            pages: "171-271"
+          - book: "Rieffel"
+            chapters: [5, 6, 7]
+            pages: "71-159"
+
+      - number: 4
+        title: "Applications of Quantum Computers"
+        topics:
+          - "Quantum Essentials"
+          - "Quantum Networking"
+          - "Tokyo QKD and Quantum Circuits"
+          - "Quantum Data Plane"
+          - "Quantum optimization"
+          - "Quantum chemistry and material"
+          - "Quantum communication"
+          - "D Wave Quantum Architecture"
+          - "Hidden Field Equations and its specifications"
+        sources:
+          - book: "Kaye"
+            chapters: [7, 8]
+            pages: "110-178"
+          - book: "Nielsen"
+            chapters: [5, 7]
+            pages: "216-343"
+          - book: "Rieffel"
+            chapters: [8, 9, 13]
+            pages: "163-327"
+
+      - number: 5
+        title: "Case Studies"
+        topics:
+          - "Quantum Cryptography"
+          - "Cryptographic Algorithm and its interpretations"
+          - "Coding Theory and Line Coding"
+          - "Cryptographic Coding"
+          - "Error Control"
+          - "Data Compression"
+          - "Quantum sensing"
+          - "Shor Algorithm"
+          - "Variation Quantum Eigen Solver and its Applications"
+        sources:
+          - book: "Kaye"
+            chapters: [9, 10]
+            pages: "179-237"
+          - book: "Nielsen"
+            chapters: [10, 12]
+            pages: "425-597"
+          - book: "Rieffel"
+            chapters: [11, 12]
+            pages: "245-310"

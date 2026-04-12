@@ -28,43 +28,54 @@ if __name__ == "__main__":
     print("=" * 60)
     syllabus = load_syllabus(settings.SYLLABUS_PATH)
 
-    # ----- 2. Setup variables -----
-    subject = "Computer Networks"
-    book_filename = "Richard_Stevens-TCP-IP_Illustrated-EN.pdf"
+    # ----- 2 & 3. Dynamically Extract ALL Subjects and Books -----
     all_pages_data = []
 
-    # Find the matching subject entry in the syllabus
-    subject_entry = None
-    for s in syllabus["subjects"]:
-        if s["name"] == subject:
-            subject_entry = s
-            break
-
-    if subject_entry is None:
-        print(f"✖ Subject '{subject}' not found in syllabus.")
-        sys.exit(1)
-
-    # ----- 3. Extract text from each unit -----
     print()
     print("=" * 60)
-    print("STEP 2 — Extracting text from PDF")
+    print("STEP 2 — Extracting text from PDFs")
     print("=" * 60)
 
-    for unit in subject_entry["units"]:
-        unit_number = unit["number"]
-        pages_str = unit["sources"][0]["pages"]          # e.g. "1-20"
-        start_page, end_page = map(int, pages_str.split("-"))
+    # Loop through every subject in the YAML
+    for subject_entry in syllabus["subjects"]:
+        subject_name = subject_entry["name"]
+        subject_folder = subject_entry["folder"]
+        
+        print(f"\n➤ Processing Subject: {subject_name} ({subject_folder})")
 
-        pages_data = extract_text_for_unit(
-            subject=subject_entry["folder"],
-            unit=unit_number,
-            book_filename=book_filename,
-            start_page=start_page,
-            end_page=end_page,
-        )
-        all_pages_data.extend(pages_data)
+        # Create a dictionary to easily find the PDF filename using the short_name
+        book_map = {book["short_name"]: book["file"] for book in subject_entry["books"]}
 
-    print(f"\n✔ Total pages extracted: {len(all_pages_data)}")
+        # Loop through every unit in this subject
+        for unit in subject_entry["units"]:
+            unit_number = unit["number"]
+            
+            # Loop through every source/book listed in this specific unit
+            for source in unit["sources"]:
+                book_short_name = source["book"]
+                book_filename = book_map.get(book_short_name)
+
+                if not book_filename:
+                    print(f"  ⚠ Error: PDF filename for '{book_short_name}' not found in book list. Skipping.")
+                    continue
+
+                pages_str = str(source["pages"])
+                
+                try:
+                    start_page, end_page = map(int, pages_str.split("-"))
+                    
+                    pages_data = extract_text_for_unit(
+                        subject=subject_folder,
+                        unit=unit_number,
+                        book_filename=book_filename,
+                        start_page=start_page,
+                        end_page=end_page,
+                    )
+                    all_pages_data.extend(pages_data)
+                except Exception as e:
+                    print(f"  ⚠ Failed to extract pages {pages_str} from {book_filename}: {e}")
+
+    print(f"\n✔ Total pages extracted across ALL subjects: {len(all_pages_data)}")
 
     # ----- 4. Chunk -----
     print()

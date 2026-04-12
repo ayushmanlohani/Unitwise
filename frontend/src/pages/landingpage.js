@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import AmbientMotion from '../components/ambientmotion';
 
 const styles = {
     page: {
@@ -108,8 +109,13 @@ export default function LandingPage() {
     const navigate = useNavigate();
 
     return (
-        <div style={styles.page}>
-            <nav style={styles.nav}>
+        <div style={styles.page} className="relative">
+
+            {/* 2. Drop the animation here, right at the top! */}
+            <AmbientMotion />
+
+            {/* 3. Add className="relative z-10" to the nav so it stays ABOVE the animation */}
+            <nav style={styles.nav} className="relative z-10">
                 <div style={styles.logo}>Unitwise</div>
                 <button
                     style={styles.btnSecondary}
