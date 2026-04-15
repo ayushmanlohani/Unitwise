@@ -4,15 +4,11 @@ import Sidebar from '../components/sidebar';
 import ChatInput from '../components/chatinput';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
 // --- Icons ---
-const SidebarToggleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
 const ChevronDownIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
 );
@@ -149,13 +145,20 @@ export default function ChatDashboard({ session }) {
     if (!inputValue.trim()) return;
 
     const userContent = inputValue.trim();
-    setMessages(prev => [...prev, { role: 'user', content: userContent }]);
+
+    // 1. Instantly show user message and an empty AI "thinking" bubble
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: userContent },
+      { role: 'assistant', content: '', sources: null } // Placeholder for the stream
+    ]);
     setInputValue('');
     setIsLoading(true);
 
     let activeChatId = currentChatId;
 
     try {
+      // --- DB: Create new chat if it doesn't exist ---
       if (!activeChatId) {
         const title = userContent.slice(0, 30) + '...';
         const { data: chatData, error: chatError } = await supabase
@@ -167,32 +170,125 @@ export default function ChatDashboard({ session }) {
         setCurrentChatId(activeChatId);
       }
 
+      // --- DB: Save the user's prompt ---
       await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'user', content: userContent }]);
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/ask', {
+      // --- API: Fetch the SSE Stream ---
+      const response = await fetch('https://ayushmanlohani-unitwise.hf.space/api/v1/ask', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream' // Tell backend we expect a stream
+        },
         body: JSON.stringify({
           query: userContent,
           subject: subject,
+          // Note: Exclude the empty placeholder we just added to state
           chat_history: messages.map(msg => ({ role: msg.role, content: msg.content })),
         }),
       });
 
       if (!response.ok) throw new Error('API Error');
-      const data = await response.json();
 
+      // --- STREAM PROCESSING ENGINE ---
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let buffer = ''; // Buffer for incomplete network chunks
+      let finalAssistantContent = '';
+      let finalAssistantSources = [];
+      let lastUpdate = Date.now();
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+
+          // Keep the last part in the buffer in case it was cut off mid-transmission
+          buffer = parts.pop() || '';
+
+          for (const part of parts) {
+            if (part.startsWith('data: ')) {
+              const dataStr = part.slice(6); // Remove "data: " prefix
+
+              if (!dataStr.trim()) continue;
+
+              try {
+                const parsed = JSON.parse(dataStr);
+
+                // Event Type Routing
+                if (parsed.type === 'content') {
+                  finalAssistantContent += parsed.data;
+                  // React update: Target the last item in the array (our placeholder) and append
+                  if (Date.now() - lastUpdate > 50) {
+                    setMessages(prev => {
+                      const newMsgs = [...prev];
+                      newMsgs[newMsgs.length - 1] = {
+                        ...newMsgs[newMsgs.length - 1],
+                        content: finalAssistantContent
+                      };
+                      return newMsgs;
+                    });
+                    lastUpdate = Date.now();
+                  }
+                }
+                else if (parsed.type === 'sources') {
+                  finalAssistantSources = parsed.data;
+                  // React update: Append the sources pill array
+                  setMessages(prev => {
+                    const newMsgs = [...prev];
+                    newMsgs[newMsgs.length - 1] = {
+                      ...newMsgs[newMsgs.length - 1],
+                      sources: finalAssistantSources
+                    };
+                    return newMsgs;
+                  });
+                }
+                else if (parsed.type === 'error') {
+                  throw new Error(parsed.data);
+                }
+              } catch (parseError) {
+                console.error("Error parsing stream chunk:", parseError, "Chunk:", dataStr);
+              }
+            }
+          }
+        }
+      }
+
+      // Final guaranteed flush for remaining un-rendered text and sources
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = {
+          ...newMsgs[newMsgs.length - 1],
+          content: finalAssistantContent,
+          sources: finalAssistantSources.length > 0 ? finalAssistantSources : null
+        };
+        return newMsgs;
+      });
+
+      // --- DB: Save the fully assembled AI answer ---
       await supabase.from('messages').insert([{
         chat_id: activeChatId,
         role: 'assistant',
-        content: data.answer,
-        sources: data.sources // Pushing the JSON array to Supabase
+        content: finalAssistantContent,
+        sources: finalAssistantSources.length > 0 ? finalAssistantSources : null
       }]);
 
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer, sources: data.sources }]);
-      loadChatSessions();
+      loadChatSessions(); // Refresh sidebar
+
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'An error occurred while accessing the library.' }]);
+      // Fallback UI error handling
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        // Only overwrite if our last message was the streaming placeholder
+        if (newMsgs[newMsgs.length - 1].role === 'assistant') {
+          newMsgs[newMsgs.length - 1].content = 'An error occurred while accessing the library.';
+        }
+        return newMsgs;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -306,17 +402,31 @@ export default function ChatDashboard({ session }) {
             >
               {messages.map((msg, idx) => {
                 const isUser = msg.role === 'user';
+
+                // We separate the base classes from the conditional classes to prevent syntax errors
+                const baseClasses = "text-[16px] leading-relaxed p-4 rounded-xl [&>p]:mb-4 last:[&>p]:mb-0 [&>h1]:text-2xl [&>h1]:font-serif [&>h1]:mt-8 [&>h1]:mb-4 [&>h1]:text-brand-terracotta [&>h2]:text-xl [&>h2]:font-serif [&>h2]:mt-8 [&>h2]:mb-4 [&>h2]:text-near-black [&>h3]:text-lg [&>h3]:font-semibold [&>h3]:mt-6 [&>h3]:mb-3 [&>h3]:text-near-black [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul]:mt-2 [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol]:mt-2 [&>li]:mb-2 [&>li>p]:mb-0 [&>strong]:font-semibold [&_.katex-display]:!flex [&_.katex-display]:!justify-center [&_.katex-display]:!my-6 [&_.katex-display]:!w-full overflow-x-auto [&>table]:w-full [&>table]:mb-6 [&>table]:border-collapse [&>table]:border [&>table]:border-border-cream [&_th]:border [&_th]:border-border-cream [&_th]:p-3 [&_th]:bg-parchment/50 [&_th]:font-semibold [&_td]:border [&_td]:border-border-cream [&_td]:p-3";
+
+                const userClasses = "bg-warm-sand text-near-black";
+                const aiClasses = "bg-ivory text-near-black border border-border-cream shadow-whisper min-h-[56px] block"; // block, NOT flex
+
                 return (
                   <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
 
-                      <div className={`text-[17px] leading-relaxed p-4 rounded-xl [&>p]:mb-4 last:[&>p]:mb-0 [&>strong]:font-semibold [&>ul]:list-disc [&>ul]:ml-6 [&>ol]:list-decimal [&>ol]:ml-6 ${isUser ? 'bg-warm-sand text-near-black' : 'bg-ivory text-near-black border border-border-cream shadow-whisper'}`}>
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                          {formatMathDelimiters(msg.content)}
-                        </ReactMarkdown>
+                      <div className={`${baseClasses} ${isUser ? userClasses : aiClasses}`}>
+                        {msg.content === '' && isLoading && idx === messages.length - 1 ? (
+                          <div className="flex h-full items-center gap-1.5 px-1">
+                            <div className="w-2 h-2 rounded-full bg-stone-gray/60 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 rounded-full bg-stone-gray/60 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 rounded-full bg-stone-gray/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                        ) : (
+                          <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                            {formatMathDelimiters(msg.content)}
+                          </ReactMarkdown>
+                        )}
                       </div>
 
-                      {/* THE NEW SOURCES ACCORDION */}
                       {!isUser && msg.sources && msg.sources.length > 0 && (
                         <SourceAccordion sources={msg.sources} />
                       )}
