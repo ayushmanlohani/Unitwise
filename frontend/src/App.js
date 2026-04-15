@@ -45,7 +45,7 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <CustomCursor />
+
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={!session ? <Login /> : <Navigate to="/chat" />} />
