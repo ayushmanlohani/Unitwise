@@ -1,0 +1,23 @@
+# --- Web Server & API ---
+fastapi==0.135.3
+uvicorn==0.42.0
+python-dotenv==1.2.2
+pydantic==2.12.5
+pydantic-settings==2.13.1
+httpx==0.28.1
+
+# --- AI & Vector Store (LangChain Ecosystem) ---
+langchain-groq==1.1.2
+langchain-chroma==1.1.0
+langchain-huggingface==1.2.1
+chromadb==1.5.5
+sentence-transformers==5.3.0
+
+# --- Deep Learning Backend (Required for Embeddings) ---
+torch==2.11.0
+transformers==5.4.0
+huggingface_hub==1.8.0
+numpy==2.4.4
+
+# --- Data Handling ---
+PyYAML==6.0.3

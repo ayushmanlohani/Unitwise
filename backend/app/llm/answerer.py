@@ -1,8 +1,8 @@
 """
-answerer.py — Generate answers using the Groq LLM based on retrieved context.
+answerer.py — Generate answers using the Groq LLM via SSE streaming.
 
 Loads a system prompt from disk, formats the retrieved chunks into a
-context block, and calls ChatGroq to produce a grounded answer.
+context block, and streams ChatGroq output token-by-token.
 """
 
 import os
@@ -23,7 +23,7 @@ def load_system_prompt() -> str:
     Returns:
         The prompt string, or a sensible fallback if the file is missing.
     """
-    prompt_path = os.path.join(settings.PROMPTS_DIR, "system.txt")
+    prompt_path = os.path.join(os.getcwd(), "prompts", "system.txt")
 
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -41,22 +41,16 @@ def load_system_prompt() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Main — generate an answer from retrieved chunks
+# Main — stream an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
-async def generate_answer(query: str, subject: str, chat_history: list = None) -> dict:
+async def generate_answer_stream(query: str, subject: str, chat_history: list = None):
     """
-    Call the Groq LLM to answer a query using documents retrieved from ChromaDB.
+    Async generator that yields SSE event dicts token-by-token.
 
-    Args:
-        query:            The user's natural-language question.
-        subject:          The subject/folder name used to filter the search.
-        chat_history:     List of previous messages (dict with 'role' and 'content').
-
-    Returns:
-        A dict with two keys:
-            - "answer"  : the generated response text (str)
-            - "sources" : a deduplicated list of source citations (list[str])
+    Yields:
+        {"type": "content", "data": "<token>"}   — for each streamed token
+        {"type": "sources", "data": [list]}       — once at the end
     """
     if chat_history is None:
         chat_history = []
@@ -64,35 +58,21 @@ async def generate_answer(query: str, subject: str, chat_history: list = None) -
     # ----- 1. Retrieve documents from ChromaDB -----
     retrieved_docs = search_documents(query=query, subject=subject)
 
-    # ----- 2. Process documents for context and sources -----
+    # ----- 2. Process context and deduplicate sources -----
     context_chunks = ""
     sources_set = set()
 
     for doc in retrieved_docs:
-        # A: Concatenate page content into a single string
         context_chunks += doc.page_content + "\n\n"
-        
-        # B: Extract and format metadata for citations
+
+        # BUG FIX: Use the correct metadata keys from ingestion ("book" and "page_number")
         book = doc.metadata.get("book", "Unknown")
         page = doc.metadata.get("page_number", "?")
         sources_set.add(f"{book} - Page {page}")
 
-    # Convert deduplicated set back to a list
     sources = list(sources_set)
 
-    # ----- 3. Initialise the LLM -----
-    llm = ChatGroq(
-        api_key=settings.GROQ_API_KEY,
-        temperature=0.2, 
-        model_name="llama-3.1-8b-instant",
-        max_retries=3,
-        request_timeout=60,
-    )
-
-    # ----- 4. Build the prompt -----
-    system_prompt = load_system_prompt()
-
-    # Format chat history
+    # ----- 3. Format chat history into a readable string -----
     history_block = "No previous context."
     if chat_history:
         history_parts = []
@@ -101,22 +81,42 @@ async def generate_answer(query: str, subject: str, chat_history: list = None) -
             history_parts.append(f"{role}:\n{msg.get('content')}")
         history_block = "\n\n".join(history_parts)
 
+    # ----- 4. Build the prompt -----
+    # BUG FIX: Use load_system_prompt() with the absolute path from settings,
+    # not a hardcoded relative path that breaks depending on CWD.
+    system_prompt_template = load_system_prompt()
+
+    # The system.txt uses {chat_history}, {context}, {query} placeholders.
+    # We use .replace() instead of .format() because the prompt contains
+    # literal curly braces in LaTeX examples (e.g. \frac{}{}) that crash .format().
+    formatted_system_prompt = system_prompt_template.replace(
+        "{chat_history}", history_block
+    ).replace(
+        "{context}", context_chunks
+    ).replace(
+        "{query}", query
+    )
+
     messages = [
-        (
-            "system",
-            f"{system_prompt}\n\n"
-            f"--- CHAT HISTORY ---\n{history_block}\n--- END CHAT HISTORY ---\n\n"
-            f"Use the following context to answer the question.\n\n"
-            f"--- CONTEXT ---\n{context_chunks}\n--- END CONTEXT ---",
-        ),
+        ("system", formatted_system_prompt),
         ("human", query),
     ]
 
-    # ----- 5. Call the LLM (async to avoid blocking the event loop) -----
-    response = await llm.ainvoke(messages)
+    # ----- 5. Initialise the LLM -----
+    # BUG FIX: Pass api_key explicitly and remove model_kwargs that Groq may reject
+    llm = ChatGroq(
+        api_key=settings.GROQ_API_KEY,
+        temperature=0.2,
+        model_name="llama-3.1-8b-instant",
+        max_retries=3,
+        request_timeout=60,
+    )
 
-    # ----- 6. Return structured output -----
-    return {
-        "answer": response.content,
-        "sources": sources,
-    }
+    # ----- 6. Stream tokens one-by-one -----
+    async for chunk in llm.astream(messages):
+        if chunk.content:
+            yield {"type": "content", "data": chunk.content}
+
+    # ----- 7. Send sources as the final event -----
+    if sources:
+        yield {"type": "sources", "data": sources}

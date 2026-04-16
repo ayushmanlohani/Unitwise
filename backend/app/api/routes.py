@@ -6,13 +6,12 @@ Endpoints:
     POST /ask     →  Accept a question + subject, return an LLM-grounded answer.
 """
 
+import json
 import traceback
 from fastapi import APIRouter, HTTPException
-
+from fastapi.responses import StreamingResponse
 from app.api.schemas import ChatRequest, ChatResponse
-from app.search.searcher import search_documents
-from app.llm.answerer import generate_answer
-
+from app.llm.answerer import generate_answer_stream
 # ---------------------------------------------------------------------------
 # Router instance — mounted by main.py under the /api/v1 prefix
 # ---------------------------------------------------------------------------
@@ -31,35 +30,29 @@ def health_check():
 # ---------------------------------------------------------------------------
 # POST /ask — core Q&A endpoint
 # ---------------------------------------------------------------------------
-@router.post("/ask", response_model=ChatResponse)
+@router.post("/ask")
 async def ask_question(request: ChatRequest):
-    """
-    Accept a student's question, retrieve relevant chunks from the
-    vector store, and return an LLM-generated answer with sources.
+    async def event_generator():
+        try:
+            # 2. Prevent Backend Buffering: Iterate over the async stream
+            async for event in generate_answer_stream(
+                query=request.query,
+                subject=request.subject,
+                chat_history=request.chat_history
+            ):
+                # 1. The Delimiter Requirement: Strict JSON dump followed exactly by \n\n
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            traceback.print_exc()
+            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
 
-    Raises:
-        HTTPException 500 if any step in the pipeline fails.
-    """
-    try:
-        # 1. Generate an answer grounded in ChromaDB chunks 
-        # (The retrieval is safely handled inside generate_answer)
-        result = await generate_answer(
-            query=request.query,
-            subject=request.subject,
-            chat_history=request.chat_history,
-        )
-
-        # 2. Map the dict returned by generate_answer -> ChatResponse
-        return ChatResponse(
-            answer=result["answer"],
-            sources=result["sources"],
-        )
-
-    except Exception as e:
-        # Print the FULL traceback to the uvicorn terminal for debugging
-        print("\n" + "=" * 60)
-        print("ERROR in /ask endpoint:")
-        print("=" * 60)
-        traceback.print_exc()
-        print("=" * 60 + "\n")
-        raise HTTPException(status_code=500, detail=str(e))
+    # 3. SSE Required Headers: Prevent browser/proxy buffering
+    return StreamingResponse(
+        event_generator(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )

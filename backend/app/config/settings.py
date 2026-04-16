@@ -49,5 +49,5 @@ CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 LLM_MODEL = "llama-3.1-8b-instant"
 LLM_TEMPERATURE = 0.3
-TOP_K = 3
+TOP_K = 15
 
