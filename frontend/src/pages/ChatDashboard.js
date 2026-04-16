@@ -364,9 +364,13 @@ export default function ChatDashboard({ session }) {
 
         <header className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-parchment/80 backdrop-blur-md border-b border-border-cream/50">
           <div className="flex items-center gap-4">
-            <div className="relative flex items-center">
+            <ModeDropdown selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
+          </div>
+
+          <div className="flex items-center gap-4 min-w-0 flex-1 justify-end">
+            <div className="relative flex items-center min-w-0">
               <button
-                className="flex items-center gap-2 bg-transparent border-none cursor-pointer hover:bg-border-cream/50 px-2 py-1 rounded-md transition-colors"
+                className="flex items-center gap-2 bg-transparent border-none cursor-pointer hover:bg-border-cream/50 px-2 py-1 rounded-md transition-colors min-w-0"
                 onClick={() => isChatActive && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={!isChatActive}
               >
@@ -377,7 +381,7 @@ export default function ChatDashboard({ session }) {
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-ivory border border-border-warm rounded-xl shadow-whisper py-2 z-30">
+                <div className="absolute top-full right-0 mt-2 w-48 bg-ivory border border-border-warm rounded-xl shadow-whisper py-2 z-30">
                   <button onClick={toggleStar} className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-charcoal-warm hover:bg-parchment cursor-pointer bg-transparent border-none text-left">
                     <StarIcon /> {currentChat?.is_starred ? 'Unstar' : 'Star'}
                   </button>
@@ -391,9 +395,7 @@ export default function ChatDashboard({ session }) {
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <ModeDropdown selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
+
             <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-brand-terracotta text-ivory font-sans font-medium text-[15px] shadow-ring-brand select-none cursor-default">
               {userInitial}
             </div>
