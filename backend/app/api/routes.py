@@ -38,7 +38,8 @@ async def ask_question(request: ChatRequest):
             async for event in generate_answer_stream(
                 query=request.query,
                 subject=request.subject,
-                chat_history=request.chat_history
+                chat_history=request.chat_history,
+                mode=request.mode
             ):
                 # 1. The Delimiter Requirement: Strict JSON dump followed exactly by \n\n
                 yield f"data: {json.dumps(event)}\n\n"

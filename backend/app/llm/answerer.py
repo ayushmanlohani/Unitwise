@@ -9,6 +9,7 @@ import os
 
 from langchain_groq import ChatGroq
 from app.config import settings
+from app.config.modes import MODE_PROMPTS, DEFAULT_MODE
 from app.search.searcher import search_documents
 
 
@@ -44,7 +45,7 @@ def load_system_prompt() -> str:
 # Main — stream an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
-async def generate_answer_stream(query: str, subject: str, chat_history: list = None):
+async def generate_answer_stream(query: str, subject: str, chat_history: list = None, mode: str = "Academic"):
     """
     Async generator that yields SSE event dicts token-by-token.
 
@@ -82,9 +83,10 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
         history_block = "\n\n".join(history_parts)
 
     # ----- 4. Build the prompt -----
-    # BUG FIX: Use load_system_prompt() with the absolute path from settings,
-    # not a hardcoded relative path that breaks depending on CWD.
     system_prompt_template = load_system_prompt()
+    
+    # Get mode-specific instructions
+    mode_instruction = MODE_PROMPTS.get(mode, MODE_PROMPTS.get(DEFAULT_MODE))
 
     # The system.txt uses {chat_history}, {context}, {query} placeholders.
     # We use .replace() instead of .format() because the prompt contains
@@ -96,6 +98,9 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
     ).replace(
         "{query}", query
     )
+
+    # Append the mode instruction at the end for final emphasis
+    formatted_system_prompt += f"\n\n### MODE: {mode}\n{mode_instruction}"
 
     messages = [
         ("system", formatted_system_prompt),

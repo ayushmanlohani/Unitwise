@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../config/supabaseClient';
 import Sidebar from '../components/sidebar';
 import ChatInput from '../components/chatinput';
+import ModeDropdown from '../components/modedropdown';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
@@ -64,6 +65,7 @@ export default function ChatDashboard({ session }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [subject, setSubject] = useState('CN'); // Default to Short Code
+  const [selectedMode, setSelectedMode] = useState('Academic');
   const [isLoading, setIsLoading] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -183,6 +185,7 @@ export default function ChatDashboard({ session }) {
         body: JSON.stringify({
           query: userContent,
           subject: subject,
+          mode: selectedMode,
           // Note: Exclude the empty placeholder we just added to state
           chat_history: messages.map(msg => ({ role: msg.role, content: msg.content })),
         }),
@@ -389,8 +392,11 @@ export default function ChatDashboard({ session }) {
               )}
             </div>
           </div>
-          <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-brand-terracotta text-ivory font-sans font-medium text-[15px] shadow-ring-brand select-none cursor-default">
-            {userInitial}
+          <div className="flex items-center gap-4">
+            <ModeDropdown selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
+            <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-brand-terracotta text-ivory font-sans font-medium text-[15px] shadow-ring-brand select-none cursor-default">
+              {userInitial}
+            </div>
           </div>
         </header>
 
