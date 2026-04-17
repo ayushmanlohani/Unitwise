@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../config/supabaseClient';
 import Sidebar from '../components/sidebar';
 import ChatInput from '../components/chatinput';
+import ModeDropdown from '../components/modedropdown';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
@@ -21,6 +22,15 @@ const RenameIcon = () => (
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b53333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
 );
+
+// --- Mode Icons Map ---
+const modeIcons = {
+  'Academic': '🎓',
+  'Simplified': '💡',
+  'Exam Prep': '📝',
+  'Revision': '⚡',
+  'Analogy': '🎭',
+};
 
 // --- Helper: Format LLM LaTeX delimiters to Markdown Math delimiters ---
 const formatMathDelimiters = (text) => {
@@ -64,6 +74,7 @@ export default function ChatDashboard({ session }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [subject, setSubject] = useState('CN'); // Default to Short Code
+  const [selectedMode, setSelectedMode] = useState('Academic');
   const [isLoading, setIsLoading] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -103,7 +114,7 @@ export default function ChatDashboard({ session }) {
       .order('created_at', { ascending: true });
 
     if (!error) {
-      setMessages(data.map(msg => ({ role: msg.role, content: msg.content, sources: msg.sources })));
+      setMessages(data.map(msg => ({ role: msg.role, content: msg.content, sources: msg.sources, mode: msg.mode })));
       setCurrentChatId(chatId);
       setIsDropdownOpen(false);
 
@@ -146,10 +157,10 @@ export default function ChatDashboard({ session }) {
 
     const userContent = inputValue.trim();
 
-    // 1. Instantly show user message and an empty AI "thinking" bubble
+    // 1. Instantly show user message with mode
     setMessages(prev => [
       ...prev,
-      { role: 'user', content: userContent },
+      { role: 'user', content: userContent, mode: selectedMode },
       { role: 'assistant', content: '', sources: null } // Placeholder for the stream
     ]);
     setInputValue('');
@@ -170,11 +181,12 @@ export default function ChatDashboard({ session }) {
         setCurrentChatId(activeChatId);
       }
 
-      // --- DB: Save the user's prompt ---
-      await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'user', content: userContent }]);
+      // --- DB: Save the user's prompt with mode ---
+      await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'user', content: userContent, mode: selectedMode }]);
 
       // --- API: Fetch the SSE Stream ---
-      const response = await fetch('https://ayushmanlohani-unitwise.hf.space/api/v1/ask', {
+      const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/api/v1/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,6 +195,7 @@ export default function ChatDashboard({ session }) {
         body: JSON.stringify({
           query: userContent,
           subject: subject,
+          mode: selectedMode,
           // Note: Exclude the empty placeholder we just added to state
           chat_history: messages.map(msg => ({ role: msg.role, content: msg.content })),
         }),
@@ -361,9 +374,13 @@ export default function ChatDashboard({ session }) {
 
         <header className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-parchment/80 backdrop-blur-md border-b border-border-cream/50">
           <div className="flex items-center gap-4">
-            <div className="relative flex items-center">
+            <ModeDropdown selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
+          </div>
+
+          <div className="flex items-center gap-4 min-w-0 flex-1 justify-end">
+            <div className="relative flex items-center min-w-0">
               <button
-                className="flex items-center gap-2 bg-transparent border-none cursor-pointer hover:bg-border-cream/50 px-2 py-1 rounded-md transition-colors"
+                className="flex items-center gap-2 bg-transparent border-none cursor-pointer hover:bg-border-cream/50 px-2 py-1 rounded-md transition-colors min-w-0"
                 onClick={() => isChatActive && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={!isChatActive}
               >
@@ -374,7 +391,7 @@ export default function ChatDashboard({ session }) {
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-ivory border border-border-warm rounded-xl shadow-whisper py-2 z-30">
+                <div className="absolute top-full right-0 mt-2 w-48 bg-ivory border border-border-warm rounded-xl shadow-whisper py-2 z-30">
                   <button onClick={toggleStar} className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-charcoal-warm hover:bg-parchment cursor-pointer bg-transparent border-none text-left">
                     <StarIcon /> {currentChat?.is_starred ? 'Unstar' : 'Star'}
                   </button>
@@ -388,9 +405,10 @@ export default function ChatDashboard({ session }) {
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-brand-terracotta text-ivory font-sans font-medium text-[15px] shadow-ring-brand select-none cursor-default">
-            {userInitial}
+
+            <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-brand-terracotta text-ivory font-sans font-medium text-[15px] shadow-ring-brand select-none cursor-default">
+              {userInitial}
+            </div>
           </div>
         </header>
 
@@ -426,6 +444,14 @@ export default function ChatDashboard({ session }) {
                           </ReactMarkdown>
                         )}
                       </div>
+
+                      {/* Mode Badge for User Messages */}
+                      {isUser && msg.mode && (
+                        <div className="mt-1 px-2 py-1 bg-stone-100 rounded text-[11px] text-stone-500 font-medium flex items-center gap-1">
+                          <span>{modeIcons[msg.mode] || '📌'}</span>
+                          <span>{msg.mode}</span>
+                        </div>
+                      )}
 
                       {!isUser && msg.sources && msg.sources.length > 0 && (
                         <SourceAccordion sources={msg.sources} />

@@ -21,10 +21,12 @@ class ChatRequest(BaseModel):
         query:   The student's natural-language question.
         subject: The subject to search within (e.g. "computer_networks").
         chat_history: Optional list of previous messages in the conversation.
+        mode: Optional mode for the LLM output (e.g. "Academic", "Simplified").
     """
     query: str
     subject: str
     chat_history: List[Dict[str, str]] = []
+    mode: str = "Academic"
 
 
 # ---------------------------------------------------------------------------

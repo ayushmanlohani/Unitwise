@@ -7,11 +7,14 @@ Endpoints:
 """
 
 import json
-import traceback
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from app.api.schemas import ChatRequest, ChatResponse
+from app.api.schemas import ChatRequest
 from app.llm.answerer import generate_answer_stream
+
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Router instance — mounted by main.py under the /api/v1 prefix
 # ---------------------------------------------------------------------------
@@ -34,19 +37,17 @@ def health_check():
 async def ask_question(request: ChatRequest):
     async def event_generator():
         try:
-            # 2. Prevent Backend Buffering: Iterate over the async stream
             async for event in generate_answer_stream(
                 query=request.query,
                 subject=request.subject,
-                chat_history=request.chat_history
+                chat_history=request.chat_history,
+                mode=request.mode
             ):
-                # 1. The Delimiter Requirement: Strict JSON dump followed exactly by \n\n
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
-            traceback.print_exc()
+            logger.exception("Error during answer stream")
             yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
 
-    # 3. SSE Required Headers: Prevent browser/proxy buffering
     return StreamingResponse(
         event_generator(), 
         media_type="text/event-stream",
