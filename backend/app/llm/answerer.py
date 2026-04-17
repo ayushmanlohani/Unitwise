@@ -1,79 +1,88 @@
-"""
-answerer.py — Generate answers using the Groq LLM via SSE streaming.
-
-Loads a system prompt from disk, formats the retrieved chunks into a
-context block, and streams ChatGroq output token-by-token.
-"""
-
-import os
-
+import asyncio
+from pathlib import Path
 from langchain_groq import ChatGroq
 from app.config import settings
-from app.config.modes import MODE_PROMPTS, DEFAULT_MODE
 from app.search.searcher import search_documents
-
+from app.llm.checkquestion import is_question_in_syllabus
 
 # ---------------------------------------------------------------------------
 # Helper — load the system prompt from file
 # ---------------------------------------------------------------------------
 
 def load_system_prompt() -> str:
-    """
-    Read the system prompt from backend/prompts/system.txt.
-
-    Returns:
-        The prompt string, or a sensible fallback if the file is missing.
-    """
-    prompt_path = os.path.join(os.getcwd(), "prompts", "system.txt")
+    # Uses absolute pathing so it never misses the file
+    # Path(__file__) is in app/llm/answerer.py
+    # .parent -> app/llm/
+    # .parent.parent -> app/
+    # .parent.parent.parent -> root/
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    prompt_path = base_dir / "prompts" / "system.txt"
 
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-
     except FileNotFoundError:
-        print(
-            f"⚠ System prompt not found at {prompt_path}. "
-            "Using fallback prompt."
-        )
-        return (
-            "You are a helpful academic assistant. "
-            "Answer strictly based on the provided context."
-        )
 
+        return (
+            "You are a strict academic assistant. You MUST ONLY answer questions "
+            "based on the provided context.\n\n"
+            "CONTEXT:\n{context}\n\n"
+            "USER QUERY: {query}\n\n"
+            "If the context does not contain the answer, reply exactly with: "
+            "'I can only answer questions related to your engineering syllabus.'"
+        )
 
 # ---------------------------------------------------------------------------
 # Main — stream an answer from retrieved chunks
 # ---------------------------------------------------------------------------
 
 async def generate_answer_stream(query: str, subject: str, chat_history: list = None, mode: str = "Academic"):
-    """
-    Async generator that yields SSE event dicts token-by-token.
-
-    Yields:
-        {"type": "content", "data": "<token>"}   — for each streamed token
-        {"type": "sources", "data": [list]}       — once at the end
-    """
     if chat_history is None:
         chat_history = []
 
-    # ----- 1. Retrieve documents from ChromaDB -----
-    retrieved_docs = search_documents(query=query, subject=subject)
+    # ----- 0. Syllabus Gate — runs in a thread to avoid blocking the event loop -----
+    syllabus_valid = await asyncio.to_thread(
+        is_question_in_syllabus, query=query, subject=subject
+    )
 
-    # ----- 2. Process context and deduplicate sources -----
+    if not syllabus_valid:
+        # ── HARD EXIT: Yield decline and terminate the generator ──
+        yield {
+            "type": "content",
+            "data": "I specialize in helping you with your syllabus topics. "
+                    "Please ask a question related to your selected engineering subject."
+        }
+        # Nothing below this point can execute — the generator ends here.
+        return
+
+
+    # ----- 1. Retrieve documents from ChromaDB -----
+    retrieved_docs = await asyncio.to_thread(
+        search_documents, query=query, subject=subject
+    )
+
+    # ----- 2. Circuit Breaker (Kill Switch) -----
+    if not retrieved_docs:
+        yield {
+            "type": "content",
+            "data": "I couldn't find relevant information in your course materials. "
+                    "Please try rephrasing your question."
+        }
+        return
+
+    # ----- 3. Process context and deduplicate sources -----
     context_chunks = ""
     sources_set = set()
 
     for doc in retrieved_docs:
         context_chunks += doc.page_content + "\n\n"
-
-        # BUG FIX: Use the correct metadata keys from ingestion ("book" and "page_number")
         book = doc.metadata.get("book", "Unknown")
         page = doc.metadata.get("page_number", "?")
         sources_set.add(f"{book} - Page {page}")
 
     sources = list(sources_set)
 
-    # ----- 3. Format chat history into a readable string -----
+    # ----- 4. Format chat history into a readable string -----
     history_block = "No previous context."
     if chat_history:
         history_parts = []
@@ -82,15 +91,9 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
             history_parts.append(f"{role}:\n{msg.get('content')}")
         history_block = "\n\n".join(history_parts)
 
-    # ----- 4. Build the prompt -----
+    # ----- 5. Build the prompt -----
     system_prompt_template = load_system_prompt()
-    
-    # Get mode-specific instructions
-    mode_instruction = MODE_PROMPTS.get(mode, MODE_PROMPTS.get(DEFAULT_MODE))
 
-    # The system.txt uses {chat_history}, {context}, {query} placeholders.
-    # We use .replace() instead of .format() because the prompt contains
-    # literal curly braces in LaTeX examples (e.g. \frac{}{}) that crash .format().
     formatted_system_prompt = system_prompt_template.replace(
         "{chat_history}", history_block
     ).replace(
@@ -99,29 +102,25 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
         "{query}", query
     )
 
-    # Append the mode instruction at the end for final emphasis
-    formatted_system_prompt += f"\n\n### MODE: {mode}\n{mode_instruction}"
-
     messages = [
         ("system", formatted_system_prompt),
         ("human", query),
     ]
 
-    # ----- 5. Initialise the LLM -----
-    # BUG FIX: Pass api_key explicitly and remove model_kwargs that Groq may reject
+    # ----- 6. Initialise the LLM -----
     llm = ChatGroq(
         api_key=settings.GROQ_API_KEY,
-        temperature=0.2,
+        temperature=0.0,
         model_name="llama-3.1-8b-instant",
         max_retries=3,
         request_timeout=60,
     )
 
-    # ----- 6. Stream tokens one-by-one -----
+    # ----- 7. Stream tokens one-by-one -----
     async for chunk in llm.astream(messages):
         if chunk.content:
             yield {"type": "content", "data": chunk.content}
 
-    # ----- 7. Send sources as the final event -----
+    # ----- 8. Send sources as the final event -----
     if sources:
         yield {"type": "sources", "data": sources}

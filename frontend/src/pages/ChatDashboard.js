@@ -23,6 +23,15 @@ const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b53333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
 );
 
+// --- Mode Icons Map ---
+const modeIcons = {
+  'Academic': '🎓',
+  'Simplified': '💡',
+  'Exam Prep': '📝',
+  'Revision': '⚡',
+  'Analogy': '🎭',
+};
+
 // --- Helper: Format LLM LaTeX delimiters to Markdown Math delimiters ---
 const formatMathDelimiters = (text) => {
   if (!text) return '';
@@ -105,7 +114,7 @@ export default function ChatDashboard({ session }) {
       .order('created_at', { ascending: true });
 
     if (!error) {
-      setMessages(data.map(msg => ({ role: msg.role, content: msg.content, sources: msg.sources })));
+      setMessages(data.map(msg => ({ role: msg.role, content: msg.content, sources: msg.sources, mode: msg.mode })));
       setCurrentChatId(chatId);
       setIsDropdownOpen(false);
 
@@ -148,10 +157,10 @@ export default function ChatDashboard({ session }) {
 
     const userContent = inputValue.trim();
 
-    // 1. Instantly show user message and an empty AI "thinking" bubble
+    // 1. Instantly show user message with mode
     setMessages(prev => [
       ...prev,
-      { role: 'user', content: userContent },
+      { role: 'user', content: userContent, mode: selectedMode },
       { role: 'assistant', content: '', sources: null } // Placeholder for the stream
     ]);
     setInputValue('');
@@ -172,11 +181,12 @@ export default function ChatDashboard({ session }) {
         setCurrentChatId(activeChatId);
       }
 
-      // --- DB: Save the user's prompt ---
-      await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'user', content: userContent }]);
+      // --- DB: Save the user's prompt with mode ---
+      await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'user', content: userContent, mode: selectedMode }]);
 
       // --- API: Fetch the SSE Stream ---
-      const response = await fetch('https://ayushmanlohani-unitwise.hf.space/api/v1/ask', {
+      const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/api/v1/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -434,6 +444,14 @@ export default function ChatDashboard({ session }) {
                           </ReactMarkdown>
                         )}
                       </div>
+
+                      {/* Mode Badge for User Messages */}
+                      {isUser && msg.mode && (
+                        <div className="mt-1 px-2 py-1 bg-stone-100 rounded text-[11px] text-stone-500 font-medium flex items-center gap-1">
+                          <span>{modeIcons[msg.mode] || '📌'}</span>
+                          <span>{msg.mode}</span>
+                        </div>
+                      )}
 
                       {!isUser && msg.sources && msg.sources.length > 0 && (
                         <SourceAccordion sources={msg.sources} />

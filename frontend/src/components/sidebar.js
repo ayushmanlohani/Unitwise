@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import SubjectChatGroup from './SubjectChatGroup';
+import StarredChatsGroup from './StarredChatsGroup';
 
 // --- SVG Icons ---
 const SidebarToggleIcon = () => (
@@ -11,25 +13,11 @@ const PlusIcon = () => (
         <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
 );
-const MenuDotsIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-    </svg>
-);
 const LogoutIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
     </svg>
 );
-
-const getSubjectInitials = (subject) => {
-    if (!subject) return '??';
-    const cleanSubject = typeof subject === 'string' ? subject.replace(/,/g, ' ') : String(subject);
-    const words = cleanSubject.trim().split(/\s+/).filter(w => w.length > 0);
-    if (words.length === 0) return '??';
-    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
-};
 
 export default function Sidebar({
     isOpen,
@@ -45,14 +33,12 @@ export default function Sidebar({
     const sidebarRef = useRef(null);
     const isResizing = useRef(false);
 
-    // We only allow custom resizing if the sidebar is OPEN
     const currentWidth = isOpen ? customWidth : 68;
 
     const startResizing = (e) => {
         if (!isOpen) return;
         isResizing.current = true;
 
-        // CRITICAL: Disable transitions during resize to remove the "lag"
         if (sidebarRef.current) {
             sidebarRef.current.style.transition = 'none';
         }
@@ -80,34 +66,29 @@ export default function Sidebar({
         document.body.style.cursor = 'default';
         document.body.style.userSelect = 'auto';
 
-        // CRITICAL: Re-enable transitions so the collapse/expand animation still works
         if (sidebarRef.current) {
             sidebarRef.current.style.transition = 'all 300ms ease-in-out';
             setCustomWidth(sidebarRef.current.offsetWidth);
         }
     };
 
-    const starredChats = chatSessions.filter(chat => chat.is_starred);
-    const recentChats = chatSessions.filter(chat => !chat.is_starred);
+    const { starredChats, subjectGroups } = useMemo(() => {
+        const starred = chatSessions.filter(chat => chat.is_starred);
+        const nonStarred = chatSessions.filter(chat => !chat.is_starred);
+        
+        const groups = {};
+        nonStarred.forEach(chat => {
+            const subject = chat.subject || 'Unknown';
+            if (!groups[subject]) {
+                groups[subject] = [];
+            }
+            groups[subject].push(chat);
+        });
 
-    const renderChatItem = (chat) => (
-        <div
-            key={chat.id}
-            className={`group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors duration-150 ${currentChatId === chat.id ? 'bg-border-cream text-near-black' : 'text-charcoal-warm hover:bg-parchment'
-                }`}
-            onClick={() => loadMessagesForChat(chat.id)}
-        >
-            <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-brand-terracotta text-ivory text-[11px] font-bold shadow-sm">
-                {getSubjectInitials(chat.subject)}
-            </div>
-            <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                <p className="truncate text-[14px] font-medium leading-tight block w-full">{chat.title || "Study Session"}</p>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0 p-1 hover:bg-stone-gray/20 rounded text-stone-gray">
-                    <MenuDotsIcon />
-                </div>
-            </div>
-        </div>
-    );
+        return { starredChats: starred, subjectGroups: groups };
+    }, [chatSessions]);
+
+    const subjectList = Object.keys(subjectGroups).sort();
 
     return (
         <aside
@@ -115,7 +96,6 @@ export default function Sidebar({
             style={{ width: `${currentWidth}px` }}
             className="relative flex flex-col shrink-0 bg-ivory border-r border-border-cream transition-all duration-300 ease-in-out overflow-hidden"
         >
-            {/* RESIZE HANDLE - Only visible/active when open */}
             {isOpen && (
                 <div
                     onMouseDown={startResizing}
@@ -153,18 +133,34 @@ export default function Sidebar({
 
             {/* HISTORY SECTION */}
             <div className={`flex-1 overflow-y-auto overflow-x-hidden px-4 transition-opacity duration-300 ${!isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                {/* Starred Chats Group */}
                 {starredChats.length > 0 && (
-                    <div className="mb-6">
-                        <div className="text-[11px] font-bold text-stone-gray uppercase tracking-widest px-2 pt-4 pb-3">Starred</div>
-                        <div className="flex flex-col gap-1">{starredChats.map(chat => renderChatItem(chat))}</div>
-                    </div>
+                    <StarredChatsGroup 
+                        chats={starredChats}
+                        currentChatId={currentChatId}
+                        onSelectChat={loadMessagesForChat}
+                    />
                 )}
-                <div>
-                    <div className="text-[11px] font-bold text-stone-gray uppercase tracking-widest px-2 pt-4 pb-3">Recents</div>
-                    <div className="flex flex-col gap-1">
-                        {recentChats.length > 0 ? recentChats.map(chat => renderChatItem(chat)) : <div className="text-[13px] text-stone-gray/60 px-2 py-2 italic">No recent sessions</div>}
-                    </div>
-                </div>
+
+                {/* Old Chats Heading */}
+                {subjectList.length > 0 && (
+                    <div className="text-[11px] font-bold text-stone-gray uppercase tracking-widest px-2 pt-2 pb-3">Old Chats</div>
+                )}
+
+                {/* Subject Groups */}
+                {subjectList.length > 0 ? (
+                    subjectList.map(subject => (
+                        <SubjectChatGroup
+                            key={subject}
+                            subject={subject}
+                            chats={subjectGroups[subject]}
+                            currentChatId={currentChatId}
+                            onSelectChat={loadMessagesForChat}
+                        />
+                    ))
+                ) : (
+                    <div className="text-[13px] text-stone-gray/60 px-2 py-2 italic">No recent sessions</div>
+                )}
             </div>
 
             {/* FOOTER */}

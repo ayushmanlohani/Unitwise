@@ -64,20 +64,15 @@ def search_documents(query: str, subject: str, unit: int = None) -> list:
         A list of LangChain Document objects (top-K results).
     """
 
-    # ----- 1. Get the shared vector-store instance -----
     store = get_vector_store()
 
-    # ----- 2. Build metadata filter -----
     search_filter = {"subject": subject}
 
     if unit is not None:
         search_filter["unit"] = unit
 
-    # ----- 3. Run similarity search -----
-    results = store.similarity_search(
+    return store.similarity_search(
         query=query,
         k=settings.TOP_K,
         filter=search_filter,
     )
-
-    return results
