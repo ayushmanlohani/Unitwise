@@ -8,6 +8,8 @@ Uses a **lazy-loaded singleton** so the embedding model and Chroma client
 are initialised only once and reused across all subsequent requests.
 """
 
+from pathlib import Path
+
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -39,8 +41,15 @@ def get_vector_store() -> Chroma:
     if _vector_store_instance is None:
         embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
 
+        # Resolve to an absolute path so it works regardless of CWD
+        # searcher.py lives at  <root>/backend/app/search/searcher.py
+        # .parent.parent.parent  →  <root>/backend/
+        persist_dir = str(
+            Path(__file__).resolve().parent.parent.parent / "vector_store"
+        )
+
         _vector_store_instance = Chroma(
-            persist_directory=settings.VECTOR_STORE_DIR,
+            persist_directory=persist_dir,
             embedding_function=embeddings,
         )
 
@@ -66,13 +75,14 @@ def search_documents(query: str, subject: str, unit: int = None) -> list:
 
     store = get_vector_store()
 
-    search_filter = {"subject": subject}
-
-    if unit is not None:
-        search_filter["unit"] = unit
+    # ── DIAGNOSTIC: filter temporarily disabled to isolate DB vs filter issue ──
+    # normalised_subject = subject.strip().lower().replace(" ", "_")
+    # search_filter = {"subject": normalised_subject}
+    # if unit is not None:
+    #     search_filter["unit"] = unit
 
     return store.similarity_search(
         query=query,
         k=settings.TOP_K,
-        filter=search_filter,
+        # filter=search_filter,  # DIAGNOSTIC: re-enable after test
     )
