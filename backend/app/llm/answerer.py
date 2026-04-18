@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from langchain_groq import ChatGroq
 from app.config import settings
+from app.config.modes import MODE_PROMPTS, DEFAULT_MODE
 from app.search.searcher import search_documents
 from app.llm.checkquestion import is_question_in_syllabus
 
@@ -22,14 +23,12 @@ def load_system_prompt() -> str:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
-
+        # If we see this in the frontend, we know the Linux path is broken!
         return (
-            "You are a strict academic assistant. You MUST ONLY answer questions "
-            "based on the provided context.\n\n"
+            "CRITICAL ERROR: SYSTEM.TXT NOT FOUND ON SERVER.\n\n"
             "CONTEXT:\n{context}\n\n"
             "USER QUERY: {query}\n\n"
-            "If the context does not contain the answer, reply exactly with: "
-            "'I can only answer questions related to your engineering syllabus.'"
+            "FALLBACK MODE INSTRUCTIONS:\n{mode_instructions}"
         )
 
 # ---------------------------------------------------------------------------
@@ -94,7 +93,12 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
     # ----- 5. Build the prompt -----
     system_prompt_template = load_system_prompt()
 
+    # Get the instructions for the selected mode. Fallback to default if somehow missing.
+    active_mode_text = MODE_PROMPTS.get(mode, MODE_PROMPTS[DEFAULT_MODE])
+
     formatted_system_prompt = system_prompt_template.replace(
+        "{mode_instructions}", active_mode_text  # <-- INJECTING THE MODE HERE
+    ).replace(
         "{chat_history}", history_block
     ).replace(
         "{context}", context_chunks
