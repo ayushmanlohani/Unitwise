@@ -33,7 +33,7 @@ def health_check():
 
 # ---------------------------------------------------------------------------
 # POST /ask — core Q&A endpoint
-# Rate-limited to 1 request per 60 seconds per IP via slowapi.
+# Rate-limited to 1 request per minute per IP via slowapi.
 # `request: Request` must be the first parameter for slowapi to inject headers.
 # ---------------------------------------------------------------------------
 @router.post("/ask")

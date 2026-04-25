@@ -59,6 +59,12 @@ LLM_TEMPERATURE = 0.0
 # 8 subject-filtered chunks give better precision than 15 unfiltered ones
 TOP_K = 8
 # Minimum cosine similarity for a retrieved chunk to be considered relevant.
-# Queries that produce no chunk above this threshold are treated as off-topic.
+# Queries that produce no chunk above this threshold are treated as off-topic
+# and return an empty list (triggering the "no results" message in answerer.py).
+# Value of 0.30 was chosen as a balanced default: low enough to catch broad
+# paraphrased questions, high enough to block clearly unrelated queries (e.g.,
+# "what is MBA" against a Computer Networks subject). Tune upward (e.g., 0.40)
+# if you see too many off-topic answers slipping through; tune downward if
+# valid questions are being blocked.
 SIMILARITY_THRESHOLD = 0.30
 
