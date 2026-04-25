@@ -1,10 +1,25 @@
-import asyncio
+import logging
 from pathlib import Path
 from langchain_groq import ChatGroq
 from app.config import settings
 from app.config.modes import MODE_PROMPTS, DEFAULT_MODE
 from app.search.searcher import search_documents
-from app.llm.checkquestion import is_question_in_syllabus
+import asyncio
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Singleton LLM client — created once at module import, reused per request.
+# ChatGroq is thread-safe and connection-pooled; constructing it per request
+# adds unnecessary auth/connection overhead.
+# ---------------------------------------------------------------------------
+_llm = ChatGroq(
+    api_key=settings.GROQ_API_KEY,
+    temperature=settings.LLM_TEMPERATURE,
+    model_name=settings.LLM_MODEL,
+    max_retries=3,
+    request_timeout=60,
+)
 
 # ---------------------------------------------------------------------------
 # Helper — load the system prompt from file
@@ -39,33 +54,20 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
     if chat_history is None:
         chat_history = []
 
-    # ----- 0. Syllabus Gate — runs in a thread to avoid blocking the event loop -----
-    syllabus_valid = await asyncio.to_thread(
-        is_question_in_syllabus, query=query, subject=subject
-    )
-
-    if not syllabus_valid:
-        # ── HARD EXIT: Yield decline and terminate the generator ──
-        yield {
-            "type": "content",
-            "data": "I specialize in helping you with your syllabus topics. "
-                    "Please ask a question related to your selected engineering subject."
-        }
-        # Nothing below this point can execute — the generator ends here.
-        return
-
-
-    # ----- 1. Retrieve documents from ChromaDB -----
+    # ----- 1. Retrieve documents from ChromaDB (subject-filtered + threshold) -----
     retrieved_docs = await asyncio.to_thread(
         search_documents, query=query, subject=subject
     )
 
-    # ----- 2. Circuit Breaker (Kill Switch) -----
+    # ----- 2. Circuit Breaker — no relevant chunks found -----
+    # This also acts as the off-topic gate: queries unrelated to the subject
+    # will produce no chunks above the similarity threshold.
     if not retrieved_docs:
         yield {
             "type": "content",
             "data": "I couldn't find relevant information in your course materials. "
-                    "Please try rephrasing your question."
+                    "Please try rephrasing your question or make sure it relates to "
+                    "your selected subject."
         }
         return
 
@@ -97,7 +99,7 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
     active_mode_text = MODE_PROMPTS.get(mode, MODE_PROMPTS[DEFAULT_MODE])
 
     formatted_system_prompt = system_prompt_template.replace(
-        "{mode_instructions}", active_mode_text  # <-- INJECTING THE MODE HERE
+        "{mode_instructions}", active_mode_text
     ).replace(
         "{chat_history}", history_block
     ).replace(
@@ -111,20 +113,11 @@ async def generate_answer_stream(query: str, subject: str, chat_history: list = 
         ("human", query),
     ]
 
-    # ----- 6. Initialise the LLM -----
-    llm = ChatGroq(
-        api_key=settings.GROQ_API_KEY,
-        temperature=0.0,
-        model_name="llama-3.1-8b-instant",
-        max_retries=3,
-        request_timeout=60,
-    )
-
-    # ----- 7. Stream tokens one-by-one -----
-    async for chunk in llm.astream(messages):
+    # ----- 6. Stream tokens one-by-one -----
+    async for chunk in _llm.astream(messages):
         if chunk.content:
             yield {"type": "content", "data": chunk.content}
 
-    # ----- 8. Send sources as the final event -----
+    # ----- 7. Send sources as the final event -----
     if sources:
         yield {"type": "sources", "data": sources}

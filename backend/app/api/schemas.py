@@ -5,8 +5,16 @@ These schemas enforce input validation on incoming requests and guarantee
 a consistent JSON shape on every response.
 """
 
-from typing import List, Dict
-from pydantic import BaseModel
+from typing import List, Dict, Literal
+from pydantic import BaseModel, Field
+
+
+# ---------------------------------------------------------------------------
+# Valid values — kept in sync with syllabus.yaml and modes.py
+# ---------------------------------------------------------------------------
+
+SubjectCode = Literal["CN", "DIP", "EML", "SCT", "DMW", "QC"]
+ModeName = Literal["Academic", "Simplified", "Exam Prep", "Revision", "Analogy"]
 
 
 # ---------------------------------------------------------------------------
@@ -18,15 +26,15 @@ class ChatRequest(BaseModel):
     Body of a POST /ask request.
 
     Attributes:
-        query:   The student's natural-language question.
-        subject: The subject to search within (e.g. "computer_networks").
+        query:        The student's natural-language question (max 500 chars).
+        subject:      Subject folder code — must be one of the 6 valid codes.
         chat_history: Optional list of previous messages in the conversation.
-        mode: Optional mode for the LLM output (e.g. "Academic", "Simplified").
+        mode:         Response style — must be one of the 5 valid mode names.
     """
-    query: str
-    subject: str
+    query: str = Field(..., min_length=1, max_length=500)
+    subject: SubjectCode
     chat_history: List[Dict[str, str]] = []
-    mode: str = "Academic"
+    mode: ModeName = "Academic"
 
 
 # ---------------------------------------------------------------------------

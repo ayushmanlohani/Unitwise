@@ -29,6 +29,12 @@ if GROQ_API_KEY is None:
         "Please set it in your .env file or as an environment variable."
     )
 
+# CORS — comma-separated list of allowed origins read from the environment.
+# Set CORS_ORIGINS in your HF Spaces secrets (and local .env) like:
+#   CORS_ORIGINS=https://unitwise.vercel.app,http://localhost:3000
+_raw_cors = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+CORS_ORIGINS: list[str] = [o.strip() for o in _raw_cors.split(",") if o.strip()]
+
 # ---------------------------------------------------------------------------
 # 3. Absolute directory / file paths (derived from PROJECT_ROOT)
 # ---------------------------------------------------------------------------
@@ -47,7 +53,12 @@ CHUNK_OVERLAP = 200
 # 5. Model & retrieval constants
 # ---------------------------------------------------------------------------
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-LLM_MODEL = "llama-3.1-8b-instant"
-LLM_TEMPERATURE = 0.3
-TOP_K = 15
+# llama-3.3-70b-versatile follows system-prompt rules reliably (vs 8b-instant)
+LLM_MODEL = "llama-3.3-70b-versatile"
+LLM_TEMPERATURE = 0.0
+# 8 subject-filtered chunks give better precision than 15 unfiltered ones
+TOP_K = 8
+# Minimum cosine similarity for a retrieved chunk to be considered relevant.
+# Queries that produce no chunk above this threshold are treated as off-topic.
+SIMILARITY_THRESHOLD = 0.30
 

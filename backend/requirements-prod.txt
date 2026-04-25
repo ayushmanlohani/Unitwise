@@ -5,6 +5,7 @@ python-dotenv==1.2.2
 pydantic==2.12.5
 pydantic-settings==2.13.1
 httpx==0.28.1
+slowapi==0.1.9
 
 # --- AI & Vector Store (LangChain Ecosystem) ---
 langchain-groq==1.1.2

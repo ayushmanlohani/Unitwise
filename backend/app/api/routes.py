@@ -8,9 +8,10 @@ Endpoints:
 
 import json
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from app.api.schemas import ChatRequest
+from app.config.limiter import limiter
 from app.llm.answerer import generate_answer_stream
 
 logger = logging.getLogger(__name__)
@@ -32,16 +33,19 @@ def health_check():
 
 # ---------------------------------------------------------------------------
 # POST /ask — core Q&A endpoint
+# Rate-limited to 1 request per 60 seconds per IP via slowapi.
+# `request: Request` must be the first parameter for slowapi to inject headers.
 # ---------------------------------------------------------------------------
 @router.post("/ask")
-async def ask_question(request: ChatRequest):
+@limiter.limit("1/minute")
+async def ask_question(request: Request, body: ChatRequest):
     async def event_generator():
         try:
             async for event in generate_answer_stream(
-                query=request.query,
-                subject=request.subject,
-                chat_history=request.chat_history,
-                mode=request.mode
+                query=body.query,
+                subject=body.subject,
+                chat_history=body.chat_history,
+                mode=body.mode
             ):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
