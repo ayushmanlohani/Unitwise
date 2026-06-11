@@ -168,6 +168,18 @@ App runs at `http://localhost:3000`
 
 ---
 
+## Deployment
+
+| Service | Purpose |
+|---|---|
+| Vercel | Frontend hosting |
+| Hugging Face Spaces | Backend (FastAPI) |
+| Supabase | Database + Auth |
+
+**[Live Demo →]https://unitwise-weld.vercel.app/**
+
+---
+
 ## Known Limitations
 
 - Metadata filtering (subject/unit) is currently disabled for testing — searches the full vector store
