@@ -2,10 +2,10 @@
 
 > **Exam in 2 days? No notes?** Unitwise lets B.Tech students ask questions directly from their syllabus and get cited, textbook-accurate answers — no notes collecting, no friend calls, no guessing.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/205304c6-bd19-4119-b679-59655f8b726a" />
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/cc8a0ca5-649b-43ed-ac5e-1fa999a81e7a" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/205304c6-bd19-4119-b679-59655f8b726a" />
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/cc8a0ca5-649b-43ed-ac5e-1fa999a81e7a" />
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/adf2ed33-7728-4746-a19b-678817801e0f" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/adf2ed33-7728-4746-a19b-678817801e0f" />
 
 
 
