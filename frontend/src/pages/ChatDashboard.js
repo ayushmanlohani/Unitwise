@@ -484,24 +484,24 @@ export default function ChatDashboard({ session }) {
               How can I help you study?
             </h1>
           {/* Suggested Questions */}
-  <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-2xl px-4">
-    {[
-      { text: "Explain the OSI model", subject: "CN" },
-      { text: "What is TCP/IP handshake?", subject: "CN" },
-      { text: "Explain backpropagation", subject: "EML" },
-      { text: "What is a fuzzy set?", subject: "SCT" },
-      { text: "Explain image segmentation", subject: "DIP" },
-      { text: "What is the Apriori algorithm?", subject: "DMW" },
-    ].map((q, i) => (
-      <button
-        key={i}
-        onClick={() => setInputValue(q.text)}
-        className="px-4 py-2 text-[14px] text-charcoal-warm bg-ivory border border-border-cream rounded-full hover:border-brand-terracotta hover:text-brand-terracotta transition-colors cursor-pointer shadow-whisper"
-      >
-        {q.text}
-      </button>
-    ))}
-  </div>
+            <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-2xl px-4">
+              {({
+                CN: ["Explain the OSI model", "What is TCP/IP handshake?", "Difference between TCP and UDP"],
+                EML: ["Explain backpropagation", "What is overfitting?", "Difference between supervised and unsupervised learning"],
+                SCT: ["What is a fuzzy set?", "Explain genetic algorithms", "What is a neural network in soft computing?"],
+                DIP: ["Explain image segmentation", "What is histogram equalization?", "Difference between lossy and lossless compression"],
+                DMW: ["What is the Apriori algorithm?", "Explain K-means clustering", "What is data warehousing?"],
+                QC: ["What is a qubit?", "Explain quantum superposition", "What is quantum entanglement?"],
+              }[subject] || []).map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => setInputValue(q)}
+                  className="px-4 py-2 text-[14px] text-charcoal-warm bg-ivory border border-border-cream rounded-full hover:border-brand-terracotta hover:text-brand-terracotta transition-colors cursor-pointer shadow-whisper"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
             <ChatInput
               inputValue={inputValue} setInputValue={setInputValue}
               subject={subject} onSubjectChange={handleSubjectChange}
