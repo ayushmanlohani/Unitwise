@@ -47,7 +47,7 @@ function App() {
       <div className="App">
 
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={session ? <Navigate to="/chat" /> : <LandingPage />} />
           <Route path="/login" element={!session ? <Login /> : <Navigate to="/chat" />} />
           <Route path="/chat" element={session ? <ChatDashboard session={session} /> : <Navigate to="/login" />} />
         </Routes>
