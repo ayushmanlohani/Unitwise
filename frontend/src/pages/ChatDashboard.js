@@ -486,12 +486,12 @@ export default function ChatDashboard({ session }) {
           {/* Suggested Questions */}
             <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-2xl px-4">
               {({
-                CN: ["Explain the OSI model", "What is TCP/IP handshake?", "Difference between TCP and UDP"],
-                EML: ["Explain backpropagation", "What is overfitting?", "Difference between supervised and unsupervised learning"],
-                SCT: ["What is a fuzzy set?", "Explain genetic algorithms", "What is a neural network in soft computing?"],
-                DIP: ["Explain image segmentation", "What is histogram equalization?", "Difference between lossy and lossless compression"],
-                DMW: ["What is the Apriori algorithm?", "Explain K-means clustering", "What is data warehousing?"],
-                QC: ["What is a qubit?", "Explain quantum superposition", "What is quantum entanglement?"],
+                CN: ["Explain the OSI model in networking", "What is TCP/IP handshake?", "Difference between TCP and UDP in networking"],
+                EML: ["Explain backpropagation in machine learning", "What is overfitting in ML?", "Difference between supervised and unsupervised learning"],
+                SCT: ["What is a fuzzy set in soft computing?", "Explain genetic algorithms in SCT", "What is a neural network in soft computing?"],
+                DIP: ["Explain image segmentation in DIP", "What is histogram equalization in image processing?", "Difference between lossy and lossless compression"],
+                DMW: ["What is the Apriori algorithm in data mining?", "Explain K-means clustering", "What is data warehousing?"],
+                QC: ["What is a qubit in Quantum Computing?", "Explain quantum superposition in QC", "What is quantum entanglement in Quantum Computing?"],
               }[subject] || []).map((q, i) => (
                 <button
                   key={i}
