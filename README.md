@@ -197,4 +197,4 @@ Built as a B.Tech penultimate year mini-project at the University of Lucknow.
 
 ## License
 
-This project is for academic purposes. Contact the team before reuse or distribution.
+This project is for academic purposes.
