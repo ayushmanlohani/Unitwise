@@ -15,3 +15,6 @@ backend/vector_store/
 # 5. Copyrighted Textbooks 
 # (We ignore the PDFs, but keep syllabus.yaml)
 backend/data/raw/
+
+# 6. Local-only notes (never push)
+WORKFLOW.md

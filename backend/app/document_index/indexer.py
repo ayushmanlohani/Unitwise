@@ -1,67 +1,119 @@
 """
-indexer.py — Embed text chunks and persist them in a ChromaDB vector store.
+indexer.py — High-speed embedding and ChromaDB storage.
 
-Wipes any existing vector store before re-indexing to ensure a clean state.
-Uses HuggingFace sentence-transformer embeddings configured in settings.
+Features:
+- Saves embeddings to numpy cache so re-runs skip encoding entirely
+- Uses raw chromadb client — no LangChain wrapper confusion
+- Processes in safe batches of 5000
+- Compatible with searcher.py exactly
 """
 
 import os
 import shutil
+import logging
+import numpy as np
+import torch
+from pathlib import Path
+from sentence_transformers import SentenceTransformer
+import chromadb
+from app.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, VALID_SUBJECTS
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+logger = logging.getLogger(__name__)
 
-from app.config import settings
+# Must match searcher.py exactly
+COLLECTION_NAME = "unitwise_chunks"
+CACHE_DIR = str(Path(VECTOR_STORE_DIR).parent / "embeddings_cache")
+BATCH_SIZE = 5000
 
 
-def index_chunks(chunks: list) -> None:
-    """
-    Embed a list of text chunks and store them in ChromaDB.
+def index_chunks(chunks: list) -> int:
+    # ── 1. Validate ──
+    valid_chunks = [
+        c for c in chunks
+        if c.get("metadata", {}).get("subject") in VALID_SUBJECTS
+        and c.get("text", "").strip()
+    ]
+    texts = [c["text"] for c in valid_chunks]
+    metadatas = [c["metadata"] for c in valid_chunks]
+    total = len(texts)
+    logger.info("Validated %d chunks.", total)
 
-    Args:
-        chunks: A list of dicts, each with:
-            - "text"     : the chunk string
-            - "metadata" : dict with subject, unit, book, page_number
+    # ── 2. Wipe old vector store ──
+    if os.path.exists(VECTOR_STORE_DIR):
+        shutil.rmtree(VECTOR_STORE_DIR)
+        logger.info("Old vector store wiped.")
+    os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+    os.makedirs(CACHE_DIR, exist_ok=True)
 
-    Workflow:
-        1. Wipe the existing vector store directory (if any).
-        2. Initialise the HuggingFace embedding model.
-        3. Separate texts and metadata into parallel lists.
-        4. Call Chroma.from_texts() to embed and persist.
-    """
+    # ── 3. Encode (with numpy cache) ──
+    cache_file = Path(CACHE_DIR) / "embeddings.npy"
+    texts_cache_file = Path(CACHE_DIR) / "texts.npy"
 
-    # ----- 1. Wipe old vector store -----
-    if os.path.exists(settings.VECTOR_STORE_DIR):
-        shutil.rmtree(settings.VECTOR_STORE_DIR)
-        print("🗑  Old vector store wiped.")
+    if cache_file.exists() and texts_cache_file.exists():
+        cached_texts = np.load(str(texts_cache_file), allow_pickle=True).tolist()
+        if cached_texts == texts:
+            logger.info("✅ Cache hit — loading embeddings from disk. Skipping encoding.")
+            embeddings_array = np.load(str(cache_file))
+        else:
+            logger.info("Cache mismatch — re-encoding.")
+            embeddings_array = _encode(texts)
+            _save_cache(embeddings_array, texts, cache_file, texts_cache_file)
+    else:
+        logger.info("No cache found — encoding from scratch.")
+        embeddings_array = _encode(texts)
+        _save_cache(embeddings_array, texts, cache_file, texts_cache_file)
 
-    os.makedirs(settings.VECTOR_STORE_DIR, exist_ok=True)
-    print(f"📁 Vector store directory ready: {settings.VECTOR_STORE_DIR}")
+    # ── 4. Store in ChromaDB ──
+    logger.info("Storing vectors in ChromaDB...")
+    client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
 
-    # ----- 2. Setup embeddings -----
-    print(f"⏳ Loading embedding model: {settings.EMBEDDING_MODEL} ...")
-    embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
-    print("✔  Embedding model loaded.")
+    # Always start fresh
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass
 
-    # ----- 3. Prepare parallel lists -----
-    texts = []
-    metadatas = []
-
-    for chunk in chunks:
-        texts.append(chunk["text"])
-        metadatas.append(chunk["metadata"])
-
-    print(f"📦 Embedding {len(texts)} chunk(s) — this may take a moment ...")
-
-    # ----- 4. Store in Chroma -----
-    Chroma.from_texts(
-        texts=texts,
-        metadatas=metadatas,
-        embedding=embeddings,
-        persist_directory=settings.VECTOR_STORE_DIR,
+    collection = client.create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"},
     )
 
-    print(
-        f"✔  Successfully saved {len(texts)} chunk(s) "
-        f"to the vector store at {settings.VECTOR_STORE_DIR}"
+    ids = [str(i) for i in range(total)]
+    embeddings_list = embeddings_array.tolist()
+
+    for i in range(0, total, BATCH_SIZE):
+        end = min(i + BATCH_SIZE, total)
+        collection.add(
+            ids=ids[i:end],
+            embeddings=embeddings_list[i:end],
+            documents=texts[i:end],
+            metadatas=metadatas[i:end],
+        )
+        logger.info(
+            "Stored batch %d/%d (%d chunks)",
+            i // BATCH_SIZE + 1,
+            (total + BATCH_SIZE - 1) // BATCH_SIZE,
+            end - i,
+        )
+
+    logger.info("✅ Successfully indexed %d chunks.", total)
+    return total
+
+
+def _encode(texts: list) -> np.ndarray:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info("Encoding on device: %s", device)
+    model = SentenceTransformer(EMBEDDING_MODEL, device=device)
+    embeddings = model.encode(
+        texts,
+        batch_size=64,
+        show_progress_bar=True,
+        convert_to_numpy=True,
     )
+    return embeddings
+
+
+def _save_cache(embeddings: np.ndarray, texts: list, cache_file: Path, texts_file: Path):
+    np.save(str(cache_file), embeddings)
+    np.save(str(texts_file), np.array(texts, dtype=object))
+    logger.info("✅ Embeddings cached to disk at %s", cache_file)

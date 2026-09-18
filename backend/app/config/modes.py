@@ -1,5 +1,3 @@
-# backend/app/config/modes.py
-
 MODE_PROMPTS = {
     "Academic": (
         "ACTIVE MODE: ACADEMIC (Comprehensive Mastery). "
@@ -38,7 +36,7 @@ MODE_PROMPTS = {
         "STYLING: For every complex concept, provide a vivid real-world analogy "
         "(e.g., comparing a Router to a Post Office or a CPU to a Kitchen). "
         "Use the analogy to bridge the gap between abstract theory and reality."
-    )
+    ),
 }
 
 DEFAULT_MODE = "Academic"

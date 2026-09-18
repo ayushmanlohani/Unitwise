@@ -1,45 +1,33 @@
 """
-schemas.py — Pydantic models for the Unitwise API request / response layer.
-
-These schemas enforce input validation on incoming requests and guarantee
-a consistent JSON shape on every response.
+schemas.py — Request and response models.
 """
 
 from typing import List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from app.config.settings import VALID_SUBJECTS
 
-
-# ---------------------------------------------------------------------------
-# Request Models
-# ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
-    """
-    Body of a POST /ask request.
-
-    Attributes:
-        query:   The student's natural-language question.
-        subject: The subject to search within (e.g. "computer_networks").
-        chat_history: Optional list of previous messages in the conversation.
-        mode: Optional mode for the LLM output (e.g. "Academic", "Simplified").
-    """
     query: str
     subject: str
     chat_history: List[Dict[str, str]] = []
     mode: str = "Academic"
 
+    @field_validator("subject")
+    @classmethod
+    def subject_must_be_valid(cls, v: str) -> str:
+        if v not in VALID_SUBJECTS:
+            raise ValueError(f"Invalid subject '{v}'. Must be one of {VALID_SUBJECTS}")
+        return v
 
-# ---------------------------------------------------------------------------
-# Response Models
-# ---------------------------------------------------------------------------
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Query cannot be empty.")
+        return v.strip()
 
-class ChatResponse(BaseModel):
-    """
-    Shape returned by the POST /ask endpoint.
 
-    Attributes:
-        answer:  The LLM-generated answer grounded in retrieved context.
-        sources: A list of source citations (e.g. "Book X, Page 42").
-    """
-    answer: str
-    sources: list[str]
+class HealthResponse(BaseModel):
+    status: str
+    version: str

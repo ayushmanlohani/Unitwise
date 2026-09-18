@@ -483,7 +483,7 @@ export default function ChatDashboard({ session }) {
             <h1 className="font-serif text-4xl font-medium leading-tight text-near-black mb-10">
               How can I help you study?
             </h1>
-          {/* Suggested Questions */}
+            {/* Suggested Questions */}
             <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-2xl px-4">
               {({
                 CN: ["Explain the OSI model in networking", "What is TCP/IP handshake?", "Difference between TCP and UDP in networking"],

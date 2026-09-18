@@ -1,88 +1,79 @@
 """
-searcher.py — Query the ChromaDB vector store for relevant document chunks.
+searcher.py — Query ChromaDB with strict subject filtering.
 
-Connects to the persisted Chroma database, applies optional subject/unit
-filters, and returns the top-K most similar results.
-
-Uses a **lazy-loaded singleton** so the embedding model and Chroma client
-are initialised only once and reused across all subsequent requests.
+Uses raw chromadb + SentenceTransformer directly.
+Must use same COLLECTION_NAME as indexer.py.
+Singleton pattern: model loaded once, reused forever.
 """
 
-from pathlib import Path
+import logging
+import torch
+from sentence_transformers import SentenceTransformer
+import chromadb
+from app.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, TOP_K
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+logger = logging.getLogger(__name__)
 
-from app.config import settings
+COLLECTION_NAME = "unitwise_chunks"
 
-
-# ---------------------------------------------------------------------------
-# Lazy-load singleton for the Chroma vector store
-# ---------------------------------------------------------------------------
-# Why a singleton?
-#   • HuggingFaceEmbeddings downloads / loads model weights on first use.
-#   • Chroma opens a persistent SQLite connection to the vector store.
-#   Both are expensive to create but safe to reuse, so we initialise once
-#   and cache the instance for the lifetime of the process.
-# ---------------------------------------------------------------------------
-_vector_store_instance = None
+_model = None
+_client = None
+_collection = None
 
 
-def get_vector_store() -> Chroma:
-    """
-    Return the shared Chroma vector-store instance.
-
-    On the first call the embedding model is loaded and the Chroma
-    client is connected.  Subsequent calls return the cached instance
-    immediately (singleton pattern).
-    """
-    global _vector_store_instance
-
-    if _vector_store_instance is None:
-        embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
-
-        # Resolve to an absolute path so it works regardless of CWD
-        # searcher.py lives at  <root>/backend/app/search/searcher.py
-        # .parent.parent.parent  →  <root>/backend/
-        persist_dir = str(
-            Path(__file__).resolve().parent.parent.parent / "vector_store"
-        )
-
-        _vector_store_instance = Chroma(
-            persist_directory=persist_dir,
-            embedding_function=embeddings,
-        )
-
-    return _vector_store_instance
+def _get_model():
+    global _model
+    if _model is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info("Loading embedding model on %s...", device)
+        _model = SentenceTransformer(EMBEDDING_MODEL, device=device)
+        logger.info("Embedding model ready.")
+    return _model
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
+def _get_collection():
+    global _client, _collection
+    if _collection is None:
+        _client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
+        _collection = _client.get_collection(name=COLLECTION_NAME)
+        logger.info("ChromaDB collection '%s' loaded.", COLLECTION_NAME)
+    return _collection
+
 
 def search_documents(query: str, subject: str, unit: int = None) -> list:
-    """
-    Search the vector store for chunks relevant to a query.
+    model = _get_model()
+    collection = _get_collection()
 
-    Args:
-        query:   The natural-language search string.
-        subject: Subject folder name to filter on (e.g. "computer_networks").
-        unit:    Optional unit number to narrow the search further.
+    query_embedding = model.encode(query, convert_to_numpy=True).tolist()
 
-    Returns:
-        A list of LangChain Document objects (top-K results).
-    """
+    where_filter = {"subject": {"$eq": subject}}
+    if unit is not None:
+        where_filter = {
+            "$and": [
+                {"subject": {"$eq": subject}},
+                {"unit": {"$eq": unit}},
+            ]
+        }
 
-    store = get_vector_store()
+    logger.info("Searching | subject=%s | query='%s'", subject, query)
 
-    # ── DIAGNOSTIC: filter temporarily disabled to isolate DB vs filter issue ──
-    # normalised_subject = subject.strip().lower().replace(" ", "_")
-    # search_filter = {"subject": normalised_subject}
-    # if unit is not None:
-    #     search_filter["unit"] = unit
-
-    return store.similarity_search(
-        query=query,
-        k=settings.TOP_K,
-        # filter=search_filter,  # DIAGNOSTIC: re-enable after test
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=TOP_K,
+        where=where_filter,
+        include=["documents", "metadatas", "distances"],
     )
+
+    # Convert raw chromadb results to LangChain-style Document objects
+    # so answerer.py doesn't need to change
+    from langchain_core.documents import Document
+    docs = []
+    if results and results["documents"] and results["documents"][0]:
+        for doc_text, metadata in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+        ):
+            docs.append(Document(page_content=doc_text, metadata=metadata))
+
+    logger.info("Found %d results for subject=%s", len(docs), subject)
+    return docs

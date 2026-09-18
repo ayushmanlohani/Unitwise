@@ -1,53 +1,100 @@
 """
-settings.py — Central configuration for the AKTU Brain project.
-All paths, API keys, and tuning constants live here.
+settings.py — All configuration in one place.
+All paths are absolute, derived from this file's location.
 """
 
 import os
+import logging as _logging
+from pathlib import Path
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------------------------
-# 1. Absolute path anchoring
-#    settings.py lives at  <root>/backend/app/config/settings.py
-#    CURRENT_DIR  → .../backend/app/config
-#    PROJECT_ROOT → .../  (three levels up)
-#    All paths derived below are therefore absolute and CWD-independent.
-# ---------------------------------------------------------------------------
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", ".."))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env")
+
+logger = _logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# 2. Load environment variables from .env at project root
+# API Keys
 # ---------------------------------------------------------------------------
-ENV_PATH = os.path.join(PROJECT_ROOT, ".env")
-load_dotenv(dotenv_path=ENV_PATH)
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-if GROQ_API_KEY is None:
-    raise ValueError(
-        "GROQ_API_KEY is missing. "
-        "Please set it in your .env file or as an environment variable."
-    )
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEY_1")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
 
 # ---------------------------------------------------------------------------
-# 3. Absolute directory / file paths (derived from PROJECT_ROOT)
+# Paths
 # ---------------------------------------------------------------------------
-DATA_DIR = os.path.join(PROJECT_ROOT, "backend", "data", "raw")
-VECTOR_STORE_DIR = os.path.join(PROJECT_ROOT, "backend", "vector_store")
-SYLLABUS_PATH = os.path.join(PROJECT_ROOT, "backend", "data", "syllabus.yaml")
-PROMPTS_DIR = os.path.join(PROJECT_ROOT, "backend", "prompts")
+DATA_DIR = PROJECT_ROOT / "data" / "raw"
+VECTOR_STORE_DIR = str(PROJECT_ROOT / "vector_store")
+SYLLABUS_PATH = PROJECT_ROOT / "data" / "syllabus.yaml"
+PROMPTS_DIR = PROJECT_ROOT / "prompts"
 
 # ---------------------------------------------------------------------------
-# 4. Chunking constants
+# Chunking
 # ---------------------------------------------------------------------------
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
 # ---------------------------------------------------------------------------
-# 5. Model & retrieval constants
+# Models
 # ---------------------------------------------------------------------------
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-LLM_MODEL = "llama-3.1-8b-instant"
-LLM_TEMPERATURE = 0.3
-TOP_K = 15
+GROQ_MODEL = "openai/gpt-oss-120b"
+TOP_K = 7
 
+# ---------------------------------------------------------------------------
+# Valid subject codes — single source of truth
+# ---------------------------------------------------------------------------
+VALID_SUBJECTS = {"CN", "DIP", "EML", "SCT", "DMW", "QC"}
+
+SUBJECT_NAMES = {
+    "CN": "Computer Network",
+    "DIP": "Digital Image Processing",
+    "EML": "Essentials of Machine Learning",
+    "SCT": "Soft Computing Techniques",
+    "DMW": "Data Mining and Warehousing",
+    "QC": "Quantum Computing",
+}
+
+# ---------------------------------------------------------------------------
+# Groq API Key Pool
+# To add a new key: add GROQ_API_KEY_N to .env and add the name here.
+# ---------------------------------------------------------------------------
+_GROQ_KEY_ENV_NAMES = [
+    "GROQ_API_KEY_1",
+    "GROQ_API_KEY_2",
+    "GROQ_API_KEY_3",
+    "GROQ_API_KEY_4",
+    "GROQ_API_KEY_5",
+    # "GROQ_API_KEY_6",
+    # "GROQ_API_KEY_7",
+]
+
+
+def get_groq_keys() -> list[str]:
+    """
+    Load all available Groq API keys from environment.
+    Skips missing keys gracefully — only loads what exists.
+    """
+    keys = []
+    for name in _GROQ_KEY_ENV_NAMES:
+        val = os.getenv(name)
+        if val and val.strip():
+            keys.append(val.strip())
+            logger.info("Loaded Groq key: %s", name)
+        else:
+            logger.debug("Groq key not found (skipping): %s", name)
+
+    if not keys:
+        legacy = os.getenv("GROQ_API_KEY")
+        if legacy:
+            keys.append(legacy.strip())
+            logger.warning("Using legacy GROQ_API_KEY.")
+
+    if not keys:
+        raise ValueError(
+            "No Groq API keys found. "
+            "Add GROQ_API_KEY_1 (and optionally _2 through _5) to .env"
+        )
+
+    logger.info("Total Groq keys loaded: %d", len(keys))
+    return keys
