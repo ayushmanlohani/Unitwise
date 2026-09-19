@@ -7,6 +7,7 @@ Singleton pattern: model loaded once, reused forever.
 """
 
 import logging
+import time
 import torch
 from sentence_transformers import SentenceTransformer
 import chromadb
@@ -41,6 +42,7 @@ def _get_collection():
 
 
 def search_documents(query: str, subject: str, unit: int = None) -> list:
+    started = time.perf_counter()
     model = _get_model()
     collection = _get_collection()
 
@@ -75,5 +77,8 @@ def search_documents(query: str, subject: str, unit: int = None) -> list:
         ):
             docs.append(Document(page_content=doc_text, metadata=metadata))
 
-    logger.info("Found %d results for subject=%s", len(docs), subject)
+    logger.info(
+        "Found %d results for subject=%s in %.0fms",
+        len(docs), subject, (time.perf_counter() - started) * 1000,
+    )
     return docs
