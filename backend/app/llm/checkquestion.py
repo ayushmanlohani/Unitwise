@@ -16,6 +16,7 @@ Three-Tier Response System:
     Tier 3 - Topic unrelated to subject -> block completely
 """
 
+import difflib
 import logging
 import re
 import yaml
@@ -101,6 +102,31 @@ def _is_hard_rejected(query: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Subject abbreviations — "in ML" means "in machine learning"
+# ---------------------------------------------------------------------------
+SUBJECT_ABBR = {
+    "ml": "machine learning",
+    "ai": "artificial intelligence",
+    "dl": "deep learning",
+    "cn": "computer network",
+    "qc": "quantum computing",
+}
+
+_ABBR_RE = re.compile(
+    r"\b(%s)\b" % "|".join(SUBJECT_ABBR), re.IGNORECASE
+)
+
+# Typo similarity bar (difflib ratio). 0.8 catches repeated-letter
+# typos like "fuzzzzy" while still blocking unrelated words.
+TYPO_RATIO = 0.8
+
+
+def _expand_abbr(text: str) -> str:
+    """Replace whole-word subject abbreviations with full names."""
+    return _ABBR_RE.sub(lambda m: SUBJECT_ABBR[m.group(0).lower()], text)
+
+
+# ---------------------------------------------------------------------------
 # Syllabus loader — cached per subject, reads disk exactly once
 # ---------------------------------------------------------------------------
 @lru_cache(maxsize=10)
@@ -165,6 +191,7 @@ def is_in_syllabus(query: str, subject_code: str) -> bool:
     """
     subject_name = SUBJECT_NAMES.get(subject_code, subject_code)
     query = re.sub(r'\bsubject\b', subject_name, query, flags=re.IGNORECASE)
+    query = _expand_abbr(query)
 
     query_lower = query.lower()
     query_words = set(re.split(r"\W+", query_lower))
@@ -215,6 +242,24 @@ def is_in_syllabus(query: str, subject_code: str) -> bool:
             weak_matches, query
         )
         return True
+
+    # Typo tolerance — a long word close to a topic word passes.
+    # difflib catches deletions/insertions ("overfiting") that the
+    # position-based _fuzzy_match misses. Block path only, stdlib only.
+    for word in meaningful_words:
+        if len(word) < 6:
+            continue
+        for candidate in topic_words:
+            if len(candidate) < 5:
+                continue
+            if abs(len(word) - len(candidate)) > 2:
+                continue
+            if difflib.SequenceMatcher(None, word, candidate).ratio() >= TYPO_RATIO:
+                logger.info(
+                    "[Bounce] PASS (typo match: '%s'~'%s') | query='%s'",
+                    word, candidate, query,
+                )
+                return True
 
     logger.info(
         "[Bounce] BLOCK | matches=%s | meaningful=%s | query='%s'",
@@ -283,6 +328,8 @@ def is_explicitly_in_syllabus(query: str, subject_code: str) -> bool:
         logger.info("[ExplicitCheck] PASS (study intent) | query='%s'", query)
         return True
 
+    query = _expand_abbr(query)
+
     # 2. Overview patterns — always Tier 1
     for pattern in _OVERVIEW_PATTERNS:
         if pattern.search(query):
@@ -300,6 +347,31 @@ def is_explicitly_in_syllabus(query: str, subject_code: str) -> bool:
     
     # Normalize query (this removes stop words/pronouns)
     query_words = _normalise_words(query)
+
+    # Typo correction — map unknown long words onto the closest topic word
+    # ("overfiting" -> "overfitting") so Rules 1-4 judge intent, not spelling.
+    # Only corrects words missing from topic_words; exact words untouched.
+    corrected = set()
+    for word in query_words:
+        if word in topic_words or len(word) < 6:
+            corrected.add(word)
+            continue
+        best, best_ratio = word, 0.0
+        for candidate in topic_words:
+            if len(candidate) < 5 or abs(len(word) - len(candidate)) > 2:
+                continue
+            ratio = difflib.SequenceMatcher(None, word, candidate).ratio()
+            if ratio > best_ratio:
+                best, best_ratio = candidate, ratio
+        if best_ratio >= TYPO_RATIO:
+            logger.info(
+                "[ExplicitCheck] Typo fix: '%s' -> '%s' | query='%s'",
+                word, best, query,
+            )
+            corrected.add(best)
+        else:
+            corrected.add(word)
+    query_words = corrected
 
     if not query_words:
         return True
@@ -330,15 +402,20 @@ def is_explicitly_in_syllabus(query: str, subject_code: str) -> bool:
                 return True
 
     # 5. Rule 5: Fuzzy match (Misspellings)
-    # FIX: Strip injected subject words ("computer", "network") so they don't 
+    # FIX: Strip injected subject words ("computer", "network") so they don't
     # trigger a false Tier 1 pass on a Tier 2 query.
+    # A single shared word (exact or plural) is not enough for Tier 1 —
+    # require 2+ fuzzy hits so near-miss topics fall to Tier 2 (disclaimer).
     query_words_for_fuzzy = query_words - subject_name_words
 
-    for word in query_words_for_fuzzy:
+    fuzzy_hits = [
+        word for word in query_words_for_fuzzy
         # Handles "nueral" -> "neural"
-        if len(word) >= 5 and _fuzzy_match(word, topic_words):
-            logger.info("[ExplicitCheck] PASS (fuzzy match: %s) | query='%s'", word, query)
-            return True
+        if len(word) >= 5 and _fuzzy_match(word, topic_words)
+    ]
+    if len(fuzzy_hits) >= 2:
+        logger.info("[ExplicitCheck] PASS (fuzzy match: %s) | query='%s'", fuzzy_hits, query)
+        return True
 
     logger.info("[ExplicitCheck] FAIL (Tier 2) | query='%s'", query)
     return False

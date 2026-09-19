@@ -42,6 +42,54 @@ FAKE_SYLLABUS = {
                     "topics": [
                         "LAN protocols - ALOHA protocols",
                         "Sliding window protocols",
+                        "Physical address formats",
+                    ],
+                },
+            ],
+        },
+        {
+            "name": "Digital Image Processing",
+            "code": "NCS-602",
+            "folder": "DIP",
+            "units": [
+                {
+                    "number": 1,
+                    "title": "Fundamentals",
+                    "topics": [
+                        "Image sampling and quantization",
+                        "Review technique comparisons",
+                    ],
+                },
+            ],
+        },
+        {
+            "name": "Essentials of Machine Learning",
+            "code": "NCS-603",
+            "folder": "EML",
+            "units": [
+                {
+                    "number": 1,
+                    "title": "Supervised Learning",
+                    "topics": [
+                        "Classification accuracy basics",
+                        "Regression models",
+                        "Overfitting and underfitting",
+                        "Machine Learning and Deep Learning",
+                    ],
+                },
+            ],
+        },
+        {
+            "name": "Soft Computing Techniques",
+            "code": "NCS-605",
+            "folder": "SCT",
+            "units": [
+                {
+                    "number": 1,
+                    "title": "Fuzzy Logic",
+                    "topics": [
+                        "Fuzzy sets and membership",
+                        "Defuzzification methods",
                     ],
                 },
             ],

@@ -39,7 +39,10 @@ CHUNK_OVERLAP = 200
 # ---------------------------------------------------------------------------
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 GROQ_MODEL = "openai/gpt-oss-120b"
-TOP_K = 7
+CANDIDATE_TOP_K = 15  # ChromaDB initial retrieve
+FINAL_TOP_K = 7  # Cross-encoder output to LLM
+TOP_K = FINAL_TOP_K  # legacy alias
+RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 # ---------------------------------------------------------------------------
 # Valid subject codes — single source of truth

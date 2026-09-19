@@ -257,6 +257,7 @@ subjects:
           - "Machine Learning and Deep Learning"
           - "Types of Machine Learning Systems"
           - "Main Challenges of Machine Learning"
+          - "Overfitting and underfitting"
           - "Statistical Learning: Introduction"
           - "Supervised and Unsupervised Learning"
           - "Training and Test Loss"
