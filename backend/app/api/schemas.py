@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     subject: str
     chat_history: List[Dict[str, str]] = []
     mode: str = "Academic"
+    user_id: str = "anon"
 
     @field_validator("subject")
     @classmethod

@@ -18,3 +18,12 @@ backend/data/raw/
 
 # 6. Local-only notes (never push)
 WORKFLOW.md
+PLAN.md
+NOTES.md
+SCRATCH.md
+.pytest_cache
+backend/.pytest_cache
+C:\Users\ayush\OneDrive\Desktop\unitwise\Unitwise\backend\.pytest_cache
+
+# 7. Heavy eval logs (local-only, golden.jsonl stays tracked)
+backend/eval/results/
