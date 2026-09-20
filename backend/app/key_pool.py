@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 # Configuration — adjust these if Groq changes their limits
 # ---------------------------------------------------------------------------
 MAX_REQUESTS_PER_MINUTE = 25      # Per key (Groq allows 30, we use 25 for safety)
-MAX_TOKENS_PER_MINUTE = 5000      # Per key (Groq allows 6000, we use 5000 for safety)
+MAX_TOKENS_PER_MINUTE = 6400      # Per key (8k tier, we use 80% for safety)
 RESET_INTERVAL_SECONDS = 60       # How often counters reset
-AVG_TOKENS_PER_REQUEST = 1500     # Conservative estimate per answer
+AVG_TOKENS_PER_REQUEST = 3000     # Measured: 7 chunks in + ~700 tokens out
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +78,12 @@ class KeyState:
             self.index, self.consecutive_errors
         )
 
+    def mark_exhausted(self):
+        """Groq said 429: treat key as full until reset, switch beats sleep."""
+        self.tokens_this_minute = MAX_TOKENS_PER_MINUTE
+        self.consecutive_errors += 1
+        logger.warning("[KeyPool] Key #%d 429, marked exhausted.", self.index)
+
     def record_success(self):
         self.consecutive_errors = 0
 
@@ -109,14 +115,15 @@ class KeyPoolManager:
 
     def get_best_key(self) -> Optional[KeyState]:
         """
-        Return the available key with the most remaining request capacity.
+        Return the available key with the most remaining token capacity.
+        Tokens bind first (~3 answers fill a key), so pick by tokens.
         Returns None if all keys are exhausted.
         """
         available = [k for k in self._pool if k.is_available]
         if not available:
             return None
-        # Pick key with most remaining requests
-        return min(available, key=lambda k: k.requests_this_minute)
+        # Pick key with most remaining tokens
+        return min(available, key=lambda k: k.tokens_this_minute)
 
     def seconds_until_any_key_free(self) -> float:
         """

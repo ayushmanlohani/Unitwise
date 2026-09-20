@@ -31,7 +31,7 @@ from app.llm.checkquestion import (
     rewrite_query,
 )
 from app.search.searcher import search_documents
-from app.key_pool import MAX_REQUESTS_PER_MINUTE, get_pool_manager
+from app.key_pool import get_pool_manager
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +239,7 @@ async def generate_answer_stream(
         }
 
     # ----------------------------------------------------------------
-    # STREAM FROM GROQ — using key pool
+    # STREAM FROM GROQ — using key pool, instant switch on 429
     # ----------------------------------------------------------------
     pool = get_pool_manager()
     key_state = await pool.acquire()
@@ -255,46 +255,55 @@ async def generate_answer_stream(
         }
         return
 
-    llm = ChatGroq(
-        api_key=key_state.key,
-        model_name=GROQ_MODEL,
-        temperature=0.0,
-        max_retries=2,
-        timeout=60,
-    )
+    streamed = False
+    for _ in range(pool.total_keys):
+        llm = ChatGroq(
+            api_key=key_state.key,
+            model_name=GROQ_MODEL,
+            temperature=0.0,
+            max_retries=0,  # 429 raises fast; we switch keys instead of sleeping
+            timeout=60,
+        )
 
-    try:
-        async for chunk in llm.astream(messages):
-            if chunk.content:
-                yield {"type": "content", "data": chunk.content}
-        key_state.record_success()
+        try:
+            async for chunk in llm.astream(messages):
+                if chunk.content:
+                    streamed = True
+                    yield {"type": "content", "data": chunk.content}
+            key_state.record_success()
+            break
 
-    except Exception as e:
-        error_str = str(e).lower()
-        key_state.record_error()
+        except Exception as e:
+            error_str = str(e).lower()
+            key_state.record_error()
 
-        if any(code in error_str for code in ["429", "rate limit"]):
-            key_state.requests_this_minute = MAX_REQUESTS_PER_MINUTE
-            wait_seconds = round(key_state.seconds_until_reset)
-            yield {
-                "type": "content",
-                "data": (
-                    f"⚠️ **Usage is very high right now.** "
-                    f"Please wait **{wait_seconds} seconds** and ask your question again."
-                ),
-            }
-        elif any(code in error_str for code in ["413", "too large"]):
-            yield {
-                "type": "content",
-                "data": "⚠️ **Response too large.** Try asking about a more specific topic.",
-            }
-        else:
-            logger.exception("Groq streaming error on key #%d", key_state.index)
-            yield {
-                "type": "content",
-                "data": "⚠️ **Error:** Something went wrong. Please try again.",
-            }
-        return
+            if any(code in error_str for code in ["429", "rate limit"]):
+                # Switch beats sleep: burn this key, try the next one.
+                key_state.mark_exhausted()
+                key_state = await pool.acquire()
+                if key_state is None or streamed:
+                    wait_seconds = round(pool.seconds_until_any_key_free())
+                    yield {
+                        "type": "content",
+                        "data": (
+                            f"⚠️ **Usage is very high right now.** "
+                            f"Please wait **{wait_seconds} seconds** and ask your question again."
+                        ),
+                    }
+                    return
+                continue
+            if any(code in error_str for code in ["413", "too large"]):
+                yield {
+                    "type": "content",
+                    "data": "⚠️ **Response too large.** Try asking about a more specific topic.",
+                }
+            else:
+                logger.exception("Groq streaming error on key #%d", key_state.index)
+                yield {
+                    "type": "content",
+                    "data": "⚠️ **Error:** Something went wrong. Please try again.",
+                }
+            return
 
     # ----------------------------------------------------------------
     # DONE
