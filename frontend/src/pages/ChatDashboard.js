@@ -196,6 +196,7 @@ export default function ChatDashboard({ session }) {
           query: userContent,
           subject: subject,
           mode: selectedMode,
+          user_id: session?.user?.id || 'anon',
           // Note: Exclude the empty placeholder we just added to state
           chat_history: messages.map(msg => ({ role: msg.role, content: msg.content })),
         }),

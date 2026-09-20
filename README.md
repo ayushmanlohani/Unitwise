@@ -39,10 +39,10 @@ FastAPI Backend  →  Syllabus Gate (LLM filter via Groq)
     │                        │ off-topic → blocked
     ▼
 ChromaDB Vector Store
-(all-MiniLM-L6-v2 embeddings, top-15 similarity search)
+(all-MiniLM-L6-v2 embeddings, retrieve-15 + cross-encoder rerank to 7)
     │
     ▼
-LLaMA 3.1 8B via Groq API  →  SSE Stream  →  Frontend renders answer + sources
+openai/gpt-oss-120b via Groq API  →  SSE Stream  →  Frontend renders answer + sources
 ```
 
 **Ingestion Pipeline (one-time setup):**
@@ -56,7 +56,7 @@ PDF textbooks → PyMuPDF extraction → RecursiveCharacterTextSplitter (1000 ch
 |---|---|
 | Frontend | React 19, Tailwind CSS, Framer Motion |
 | Backend | FastAPI, Uvicorn |
-| LLM | LLaMA 3.1 8B Instant via Groq API |
+| LLM | openai/gpt-oss-120b via Groq API |
 | RAG Framework | LangChain Core, LangChain Groq |
 | Vector Store | ChromaDB (SQLite-backed, persistent) |
 | Embeddings | all-MiniLM-L6-v2 (Sentence Transformers, 384-dim) |
@@ -185,7 +185,7 @@ App runs at `http://localhost:3000`
 ## Known Limitations
 
 - Metadata filtering (subject/unit) is currently disabled for testing — searches the full vector store
-- No reranking; uses pure cosine similarity (top-15 chunks)
+- Cross-encoder reranks retrieve-15 to final 7, silent cosine fallback on failure
 - No incremental ingestion — full re-index required on PDF updates
 - Backend auth relies on frontend Supabase session only
 

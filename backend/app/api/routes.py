@@ -10,6 +10,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.api.schemas import ChatRequest, HealthResponse
 from app.llm.answerer import generate_answer_stream
+from app.ratelimit import get_limiter, limit_message
 
 logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
@@ -33,6 +34,15 @@ def pool_status():
 @limiter.limit("3/10seconds")
 async def ask_question(request: Request, body: ChatRequest):
     async def event_generator():
+        gate = get_limiter().check(body.user_id)
+        if not gate["allowed"]:
+            yield {
+                "type": "content",
+                "data": limit_message(
+                    gate["wait_seconds"], gate["mode"], gate["active_users"]
+                ),
+            }
+            return
         try:
             async for event in generate_answer_stream(
                 query=body.query,

@@ -243,6 +243,15 @@ def is_in_syllabus(query: str, subject_code: str) -> bool:
         )
         return True
 
+    # Short query (1 meaningful word) — exact match passes (e.g. "OSI", "TCP").
+    # Exact only, no fuzzy, so junk like "pasta" still blocks.
+    if len(meaningful_words) == 1 and len(matches) == 1:
+        logger.info(
+            "[Bounce] PASS (short exact match=%s) | query='%s'",
+            matches, query
+        )
+        return True
+
     # Typo tolerance — a long word close to a topic word passes.
     # difflib catches deletions/insertions ("overfiting") that the
     # position-based _fuzzy_match misses. Block path only, stdlib only.
