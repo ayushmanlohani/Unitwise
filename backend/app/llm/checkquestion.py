@@ -116,6 +116,25 @@ _ABBR_RE = re.compile(
     r"\b(%s)\b" % "|".join(SUBJECT_ABBR), re.IGNORECASE
 )
 
+# ---------------------------------------------------------------------------
+# Topic aliases — shortforms / synonyms that syllabus lists differently
+# ---------------------------------------------------------------------------
+TOPIC_ALIASES = {
+    "qubit": "quantum bits",
+    "qubits": "quantum bits",
+    "wavefunction": "wave function",
+    "wavefunctions": "wave function",
+}
+
+_ALIAS_RE = re.compile(
+    r"\b(%s)\b" % "|".join(TOPIC_ALIASES), re.IGNORECASE
+)
+
+
+def _expand_aliases(text: str) -> str:
+    """Replace topic shortforms with syllabus canonical phrase."""
+    return _ALIAS_RE.sub(lambda m: TOPIC_ALIASES[m.group(0).lower()], text)
+
 # Typo similarity bar (difflib ratio). 0.8 catches repeated-letter
 # typos like "fuzzzzy" while still blocking unrelated words.
 TYPO_RATIO = 0.8
@@ -192,6 +211,7 @@ def is_in_syllabus(query: str, subject_code: str) -> bool:
     subject_name = SUBJECT_NAMES.get(subject_code, subject_code)
     query = re.sub(r'\bsubject\b', subject_name, query, flags=re.IGNORECASE)
     query = _expand_abbr(query)
+    query = _expand_aliases(query)
 
     query_lower = query.lower()
     query_words = set(re.split(r"\W+", query_lower))
@@ -338,6 +358,7 @@ def is_explicitly_in_syllabus(query: str, subject_code: str) -> bool:
         return True
 
     query = _expand_abbr(query)
+    query = _expand_aliases(query)
 
     # 2. Overview patterns — always Tier 1
     for pattern in _OVERVIEW_PATTERNS:
@@ -492,6 +513,7 @@ def rewrite_query(query: str, chat_history: list, subject: str) -> str:
 
     # Replace generic "subject" with actual subject name
     query = re.sub(r'\bsubject\b', subject_name, query, flags=re.IGNORECASE)
+    query = _expand_aliases(query)
 
     query_words = set(query.lower().split())
     has_pronoun = bool(query_words & PRONOUNS)
