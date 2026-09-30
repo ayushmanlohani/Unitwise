@@ -8,75 +8,79 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f5f4ed',
-    fontFamily: "system-ui, -apple-system, sans-serif",
-    padding: '1rem',
+    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+    padding: '16px',
+    boxSizing: 'border-box',
   },
   card: {
     width: '100%',
-    maxWidth: '400px',
+    maxWidth: '438px',
     backgroundColor: '#faf9f5',
-    border: '1px solid #f0eee6',
-    borderRadius: '16px',
-    padding: '48px 40px',
-    boxShadow: 'rgba(0,0,0,0.05) 0px 4px 24px',
+    border: '1px solid #e8e6dc',
+    borderRadius: '18px',
+    padding: '32px 34px 26px',
+    boxShadow: 'rgba(20, 20, 19, 0.05) 0px 8px 30px',
+    boxSizing: 'border-box',
   },
   title: {
-    fontFamily: "'Georgia', serif",
-    fontSize: '32px',
+    fontFamily: "'Instrument Serif', Georgia, serif",
+    fontSize: '34px',
     fontWeight: 500,
-    lineHeight: 1.10,
+    lineHeight: 1.12,
     color: '#141413',
-    margin: '0 0 8px 0',
+    margin: '0 0 6px 0',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: '16px',
-    lineHeight: 1.60,
+    fontSize: '14px',
+    lineHeight: 1.45,
     color: '#5e5d59',
     textAlign: 'center',
-    margin: '0 0 32px 0',
+    margin: '0 0 20px 0',
   },
   label: {
     display: 'block',
-    fontSize: '14px',
+    fontSize: '13px',
+    fontWeight: 500,
     color: '#4d4c48',
-    marginBottom: '6px',
+    marginBottom: '5px',
   },
   input: {
     width: '100%',
-    padding: '12px',
-    marginBottom: '20px',
-    fontSize: '16px',
-    fontFamily: "system-ui, sans-serif",
+    padding: '10px 14px',
+    marginBottom: '14px',
+    fontSize: '14px',
+    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     color: '#141413',
     backgroundColor: '#ffffff',
     border: '1px solid #e8e6dc',
-    borderRadius: '8px',
+    borderRadius: '9px',
     outline: 'none',
     boxSizing: 'border-box',
-    transition: 'border-color 0.2s',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
   },
   btnPrimary: {
     width: '100%',
     backgroundColor: '#141413',
-    color: '#f5f4ed',
-    padding: '12px 16px',
-    borderRadius: '8px',
+    color: '#faf9f5',
+    padding: '11px 16px',
+    borderRadius: '9px',
     border: 'none',
-    fontSize: '16px',
-    fontWeight: 500,
+    fontSize: '14px',
+    fontWeight: 600,
     cursor: 'pointer',
-    marginTop: '8px',
-    boxShadow: '0px 0px 0px 1px #30302e',
+    marginTop: '6px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+    transition: 'background-color 0.15s ease',
   },
   btnGoogle: {
     width: '100%',
     backgroundColor: '#ffffff',
     color: '#141413',
-    padding: '12px 16px',
-    borderRadius: '8px',
+    padding: '11px 16px',
+    borderRadius: '9px',
     border: '1px solid #e8e6dc',
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
     marginBottom: '0px',
@@ -84,14 +88,18 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '10px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+    transition: 'all 0.15s ease',
   },
   divider: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    margin: '24px 0',
-    color: '#9e9d99',
-    fontSize: '13px',
+    margin: '16px 0',
+    color: '#87867f',
+    fontSize: '11px',
+    fontFamily: "'JetBrains Mono', monospace",
+    textTransform: 'uppercase',
   },
   dividerLine: {
     flex: 1,
@@ -101,19 +109,20 @@ const styles = {
   linkBtn: {
     background: 'none',
     border: 'none',
-    color: '#3d3d3a',
-    fontSize: '14px',
+    color: '#5e5d59',
+    fontSize: '13px',
     cursor: 'pointer',
     textDecoration: 'underline',
-    marginTop: '24px',
+    marginTop: '16px',
     width: '100%',
     textAlign: 'center',
+    padding: '4px',
   },
   message: {
-    padding: '12px',
+    padding: '9px 14px',
     borderRadius: '8px',
-    fontSize: '14px',
-    marginBottom: '20px',
+    fontSize: '13px',
+    marginBottom: '12px',
     textAlign: 'center',
   }
 };
@@ -175,19 +184,26 @@ export default function Login() {
         {message && <div style={{ ...styles.message, backgroundColor: '#f0eee6', color: '#4d4c48' }}>{message}</div>}
 
         {/* Google Button */}
-        <button style={styles.btnGoogle} onClick={handleGoogleSignIn} disabled={loading}>
+        <button
+          type="button"
+          style={styles.btnGoogle}
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f4ed'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+        >
           <GoogleIcon />
-          Continue with Google
+          <span>Continue with Google</span>
         </button>
 
         {/* Divider */}
         <div style={styles.divider}>
           <div style={styles.dividerLine} />
-          or
+          <span>or</span>
           <div style={styles.dividerLine} />
         </div>
 
-        {/* Email/Password form — unchanged */}
+        {/* Email/Password form */}
         <form onSubmit={handleSubmit}>
           <label style={styles.label}>Email Address</label>
           <input
@@ -195,8 +211,14 @@ export default function Login() {
             style={styles.input}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onFocus={(e) => e.target.style.borderColor = '#3898ec'}
-            onBlur={(e) => e.target.style.borderColor = '#e8e6dc'}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#c96442';
+              e.target.style.boxShadow = '0 0 0 1px #c96442';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e8e6dc';
+              e.target.style.boxShadow = 'none';
+            }}
             required
           />
           <label style={styles.label}>Password</label>
@@ -205,16 +227,34 @@ export default function Login() {
             style={styles.input}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onFocus={(e) => e.target.style.borderColor = '#3898ec'}
-            onBlur={(e) => e.target.style.borderColor = '#e8e6dc'}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#c96442';
+              e.target.style.boxShadow = '0 0 0 1px #c96442';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e8e6dc';
+              e.target.style.boxShadow = 'none';
+            }}
             required
           />
-          <button type="submit" style={{ ...styles.btnPrimary, opacity: loading ? 0.7 : 1 }} disabled={loading}>
+          <button
+            type="submit"
+            style={{ ...styles.btnPrimary, opacity: loading ? 0.7 : 1 }}
+            disabled={loading}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#2a2926'; }}
+            onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#141413'; }}
+          >
             {loading ? 'Please wait...' : (isLoginMode ? 'Sign In' : 'Create Account')}
           </button>
         </form>
 
-        <button type="button" style={styles.linkBtn} onClick={() => { setIsLoginMode(!isLoginMode); setError(''); setMessage(''); }}>
+        <button
+          type="button"
+          style={styles.linkBtn}
+          onClick={() => { setIsLoginMode(!isLoginMode); setError(''); setMessage(''); }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#141413'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#5e5d59'}
+        >
           {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
         </button>
       </div>
