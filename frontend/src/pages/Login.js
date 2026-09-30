@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../config/supabaseClient';
 
 const styles = {
@@ -11,6 +13,27 @@ const styles = {
     fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
     padding: '16px',
     boxSizing: 'border-box',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: '24px',
+    left: '28px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#5e5d59',
+    textDecoration: 'none',
+    padding: '8px 14px',
+    borderRadius: '8px',
+    backgroundColor: '#faf9f5',
+    border: '1px solid #e8e6dc',
+    boxShadow: '0 1px 2px rgba(20, 20, 19, 0.03)',
+    transition: 'all 0.15s ease',
+    cursor: 'pointer',
+    zIndex: 10,
   },
   card: {
     width: '100%',
@@ -174,6 +197,25 @@ export default function Login() {
 
   return (
     <div style={styles.page}>
+      {/* Return to Home Navigation */}
+      <Link
+        to="/"
+        style={styles.backButton}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#ffffff';
+          e.currentTarget.style.borderColor = '#d8d6cc';
+          e.currentTarget.style.color = '#141413';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#faf9f5';
+          e.currentTarget.style.borderColor = '#e8e6dc';
+          e.currentTarget.style.color = '#5e5d59';
+        }}
+      >
+        <ArrowLeft style={{ width: '14px', height: '14px' }} />
+        <span>Back to Home</span>
+      </Link>
+
       <div style={styles.card}>
         <h1 style={styles.title}>{isLoginMode ? 'Welcome Back' : 'Join Unitwise'}</h1>
         <p style={styles.subtitle}>
