@@ -24,6 +24,8 @@ WORKFLOW.md
 PLAN.md
 NOTES.md
 SCRATCH.md
+HowItsRunningAuto.md
+.kilo/
 .pytest_cache
 backend/.pytest_cache
 C:\Users\ayush\OneDrive\Desktop\unitwise\Unitwise\backend\.pytest_cache
