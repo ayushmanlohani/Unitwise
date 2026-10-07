@@ -36,12 +36,14 @@ async def ask_question(request: Request, body: ChatRequest):
     async def event_generator():
         gate = get_limiter().check(body.user_id)
         if not gate["allowed"]:
-            yield {
-                "type": "content",
-                "data": limit_message(
-                    gate["wait_seconds"], gate["mode"], gate["active_users"]
-                ),
-            }
+            yield "data: " + json.dumps(
+                {
+                    "type": "content",
+                    "data": limit_message(
+                        gate["wait_seconds"], gate["mode"], gate["active_users"]
+                    ),
+                }
+            ) + "\n\n"
             return
         try:
             async for event in generate_answer_stream(

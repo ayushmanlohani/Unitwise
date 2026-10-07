@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 
-// HOW TO CHANGE ICONS: 
-// Just change the emoji inside the 'icon' quotes below.
 const modes = [
   { id: 'Academic', icon: '🎓', desc: 'Formal & Detailed' },
   { id: 'Simplified', icon: '💡', desc: 'Simple & Clear' },

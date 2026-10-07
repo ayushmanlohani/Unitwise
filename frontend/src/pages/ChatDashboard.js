@@ -16,9 +16,6 @@ const ChevronDownIcon = () => (
 const StarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
 );
-const RenameIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
-);
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b53333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
 );
@@ -395,9 +392,6 @@ export default function ChatDashboard({ session }) {
                 <div className="absolute top-full right-0 mt-2 w-48 bg-ivory border border-border-warm rounded-xl shadow-whisper py-2 z-30">
                   <button onClick={toggleStar} className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-charcoal-warm hover:bg-parchment cursor-pointer bg-transparent border-none text-left">
                     <StarIcon /> {currentChat?.is_starred ? 'Unstar' : 'Star'}
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-charcoal-warm hover:bg-parchment cursor-pointer bg-transparent border-none text-left">
-                    <RenameIcon /> Rename
                   </button>
                   <div className="my-1 border-t border-border-cream"></div>
                   <button onClick={deleteChat} className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-[#b53333] hover:bg-[#fef2f2] cursor-pointer bg-transparent border-none text-left">

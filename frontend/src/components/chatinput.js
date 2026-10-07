@@ -51,7 +51,6 @@ export default function ChatInput({
                     disabled={isLoading}
                 />
 
-                {/* Added mb-1.5 (6px) to perfectly center the 36px controls inside the 48px textarea */}
                 <div className="flex items-center gap-2 shrink-0 mb-1.5 mr-1">
 
                     {/* Forced height to exactly 36px */}

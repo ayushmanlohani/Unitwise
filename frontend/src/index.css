@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* A custom class for that beautiful mesh gradient background */
 .bg-mesh-parchment {
   background-color: #f5f4ed;
   background-image:

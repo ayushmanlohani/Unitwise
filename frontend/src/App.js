@@ -11,7 +11,6 @@ import { supabase } from './config/supabaseClient';
 import Login from './pages/Login';
 import ChatDashboard from './pages/ChatDashboard';
 import LandingPage from './pages/landingpage';
-import CustomCursor from './components/CustomCursor';
 
 function App() {
   // ---- Session state (null = not authenticated) ----
